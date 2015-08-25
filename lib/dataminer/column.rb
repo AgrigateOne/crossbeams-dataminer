@@ -22,25 +22,11 @@ module Dataminer
     end
 
     def self.create_from_parse(seq, path)
-      self.new(seq, path)
-    end
-    
-    def ast_name
-      if @parse_path['val']['FUNCCALL']
-        @parse_path['val']['FUNCCALL']['funcname'].join('.') #.......
-      else
-        @parse_path['val']['COLUMNREF']['fields'].join('.')
-      end
+      new(seq, path)
     end
 
     private
 
-    # {"RESTARGET"=>{"name"=>nil, "indirection"=>nil, "val"=>{"COLUMNREF"=>{"fields"=>["b", "name"], "location"=>12}}, "location"=>12}}
-    # {"RESTARGET"=>{"name"=>nil, "indirection"=>nil, "val"=>{"COLUMNREF"=>{"fields"=>["u", "id"], "location"=>7}}, "location"=>7}}
-    # {"RESTARGET"=>{"name"=>nil, "indirection"=>nil, "val"=>{"COLUMNREF"=>{"fields"=>["id"], "location"=>7}}, "location"=>7}}
-    # {"RESTARGET"=>{"name"=>nil, "indirection"=>nil, "val"=>{"COLUMNREF"=>{"fields"=>[{"A_STAR"=>{}}], "location"=>7}}, "location"=>7}}
-    # {"RESTARGET"=>{"name"=>"testo", "indirection"=>nil, "val"=>{"FUNCCALL"=>{"funcname"=>["pg_catalog", "date_part"], "args"=>[{"A_CONST"=>{"val"=>"year", "location"=>15}}, {"COLUMNREF"=>{"fields"=>["created_at"], "location"=>27}}], "agg_order"=>nil, "agg_filter"=>nil, "agg_within_group"=>false, "agg_star"=>false, "agg_distinct"=>false, "func_variadic"=>false, "over"=>nil, "location"=>7}}, "location"=>7}}
-    # {"RESTARGET"=>{"name"=>nil, "indirection"=>nil, "val"=>{"FUNCCALL"=>{"funcname"=>["pg_catalog", "date_part"], "args"=>[{"A_CONST"=>{"val"=>"year", "location"=>15}}, {"COLUMNREF"=>{"fields"=>["created_at"], "location"=>27}}], "agg_order"=>nil, "agg_filter"=>nil, "agg_within_group"=>false, "agg_star"=>false, "agg_distinct"=>false, "func_variadic"=>false, "over"=>nil, "location"=>7}}, "location"=>7}}
     def get_name(restarget)
       if restarget['name']
         restarget['name']
@@ -61,8 +47,10 @@ module Dataminer
     def get_namespaced_name(restarget)
       if restarget['val']['FUNCCALL']
         restarget['val']['FUNCCALL']['funcname'].join('.') #.......
-      else
+      elsif restarget['val']['COLUMNREF']
         restarget['val']['COLUMNREF']['fields'].join('.')
+      else
+        nil # Probably a calculated field - can't be used as a query parameter
       end
     end
 

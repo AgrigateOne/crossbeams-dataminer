@@ -19,44 +19,49 @@ module Dataminer
       raise SyntaxError, e.message
     end
 
-    def replace_where(conditions)
+    def replace_where(params)
       @modified_parse = @parsed_sql.dup
-      @modified_parse.parsetree[0]['SELECT']['whereClause'] =
- #{"AEXPR"=> {"name"=> ["=" ], "lexpr"=> {"COLUMNREF"=> {"fields"=> ["id" ], "location"=>nil } }, "rexpr"=> {"A_CONST"=> {"val"=>21, "location"=>nil } }, "location"=>nil } }
- {"AEXPR"=> {"name"=> ["=" ], "lexpr"=> {"COLUMNREF"=> {"fields"=> ["id" ] } }, "rexpr"=> {"A_CONST"=> {"val"=>21 } } } }
-
+      @modified_parse.parsetree[0]['SELECT']['whereClause'] = nil
+      apply_params(params, :prepared_parsetree => true)
     end
-# {"AEXPR"=> {"name"=> ["=" ], "lexpr"=> {"COLUMNREF"=> {"fields"=> ["id" ], "location"=>27 } }, "rexpr"=> {"A_CONST"=> {"val"=>21, "location"=>32 } }, "location"=>30 } }
 
     # This should be changed to allow for the case where some parameters are already in place...
-    def apply_params(params)
-      @modified_parse = @parsed_sql.dup
-      if params.length == 1
-        @modified_parse.parsetree[0]['SELECT']['whereClause'] = params.first.to_ast
+    def apply_params(params, options={})
+      @modified_parse = @parsed_sql.dup unless options[:prepared_parsetree]
+      return if params.length == 0
+
+      # How to merge params if existing?
+      if @modified_parse.parsetree[0]['SELECT']['whereClause'].nil?
+        if params.length == 1
+          @modified_parse.parsetree[0]['SELECT']['whereClause'] = params.first.to_ast
+        else
+          @modified_parse.parsetree[0]['SELECT']['whereClause'] = combine_params_for_where(params)
+        end
       else
-        @modified_parse.parsetree[0]['SELECT']['whereClause'] = combine_params_for_where(params)
+        curr_where = @modified_parse.parsetree[0]['SELECT']['whereClause'].dup
+        exist_where = @parsed_sql.deparse([curr_where])
+        plus_parms = QueryParameter.reverse_engineer_from_string(exist_where)
+        @modified_parse.parsetree[0]['SELECT']['whereClause'] = combine_params_for_where(plus_parms + params)
       end
- #{"AEXPR"=> {"name"=> ["=" ], "lexpr"=> {"COLUMNREF"=> {"fields"=> ["id" ], "location"=>nil } }, "rexpr"=> {"A_CONST"=> {"val"=>21, "location"=>nil } }, "location"=>nil } }
- #{"AEXPR"=> {"name"=> ["=" ], "lexpr"=> {"COLUMNREF"=> {"fields"=> ["id" ] } }, "rexpr"=> {"A_CONST"=> {"val"=>21 } } } }
+    end
+
+    def show_tree
+      puts @modified_parse.parsetree[0].inspect
     end
 
     def runnable_sql
       (@modified_parse || @parsed_sql).deparse
     end
 
-    def test(params)
-
-    end
-
     private
 
     def combine_params_for_where(params)
       hash = {}
-      add_params(hash, params)
+      join_add_params(hash, params)
       hash
     end
 
-    def add_params(hash,params)
+    def join_add_params(hash,params)
       if params.count > 1
         hash['AEXPR AND'] = {'lexpr' => {}}
         next_part = hash['AEXPR AND']['lexpr']
@@ -64,13 +69,33 @@ module Dataminer
         if params.count == 1
           hash['AEXPR AND']['lexpr'] = params.pop.to_ast
         else
-          add_params(next_part, params)
+          join_add_params(next_part, params)
         end
       else
         hash['lexpr'] = params.pop.to_ast
       end
     end
- #    "whereClause"=>{"AEXPR AND"=>{"lexpr"=>{"AEXPR AND"=>{"lexpr"=>{"AEXPR AND"=>{"lexpr"=>{"AEXPR"=>{"name"=>["="], "lexpr"=>{"COLUMNREF"=>{"fields"=>["id"], "location"=>33}}, "rexpr"=>{"A_CONST"=>{"val"=>1, "location"=>38}}, "location"=>36}}, "rexpr"=>{"AEXPR"=>{"name"=>["="], "lexpr"=>{"COLUMNREF"=>{"fields"=>["name"], "location"=>45}}, "rexpr"=>{"A_CONST"=>{"val"=>"fred", "location"=>52}}, "location"=>50}}, "location"=>41}}, "rexpr"=>{"AEXPR"=>{"name"=>["="], "lexpr"=>{"COLUMNREF"=>{"fields"=>["logins"], "location"=>64}}, "rexpr"=>{"A_CONST"=>{"val"=>2, "location"=>73}}, "location"=>71}}, "location"=>60}}, "rexpr"=>{"AEXPR"=>{"name"=>["="], "lexpr"=>{"COLUMNREF"=>{"fields"=>["nn"], "location"=>80}}, "rexpr"=>{"A_CONST"=>{"val"=>"a", "location"=>85}}, "location"=>83}}, "location"=>76}},
+
+    def combine_params_for_where_at_right(params)
+      hash = {}
+      join_add_params_at_right(hash, params)
+      hash
+    end
+
+    def join_add_params_at_right(hash,params)
+      if params.count > 1
+        hash['AEXPR AND'] = {'lexpr' => {}}
+        next_part = hash['AEXPR AND']['lexpr']
+        hash['AEXPR AND']['rexpr'] = params.pop.to_ast
+        if params.count == 1
+          hash['AEXPR AND']['lexpr'] = params.pop.to_ast
+        else
+          join_add_params_at_right(next_part, params)
+        end
+      else
+        hash['rexpr'] = params.pop.to_ast
+      end
+    end
 
   end
 

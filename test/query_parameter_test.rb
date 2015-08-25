@@ -72,5 +72,6 @@ class QueryParameterTest < Minitest::Test
     assert_equal '2015-08-01', ast['AEXPR AND']['lexpr']['AEXPR']['rexpr']['A_CONST']['val']
     assert_equal '2015-08-31', ast['AEXPR AND']['rexpr']['AEXPR']['rexpr']['A_CONST']['val']
   end
+  #TODO test reverse engineer WHERE clause...
 
 end

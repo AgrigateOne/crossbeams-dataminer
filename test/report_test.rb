@@ -22,16 +22,45 @@ class ReportTest < Minitest::Test
     @report.sql = "SELECT id, name AS login FROM users;"
     assert_equal ['id', 'login'], @report.columns.map {|c| c.name }
   end
-  # where clauses....
 
   def test_replace_where
-    @report.sql = "SELECT id, name FROM users"
-    @report.replace_where('id = 21')
-    assert_equal "SELECT id, name FROM users WHERE id = 21", @report.runnable_sql
+    @report.sql = "SELECT id, name FROM users WHERE id = 21"
+    params = []
+    params << Dataminer::QueryParameter.new('name', :operator => '=', :value => 'Fred')
+    @report.replace_where(params)
+    assert_equal "SELECT id, name FROM users WHERE name = 'Fred'", @report.runnable_sql
   end
 
-  # def test_set_column_datatypes_from_active_record
-  #   skip 'To Do...'
-  # end
+  def test_apply_no_params
+    @report.sql = "SELECT id, name FROM users"
+    @report.apply_params([])
+    assert_equal "SELECT id, name FROM users", @report.runnable_sql
+  end
+
+  def test_apply_params
+    @report.sql = "SELECT id, name FROM users"
+    params = []
+    params << Dataminer::QueryParameter.new('name', :operator => '=', :value => 'Fred')
+    params << Dataminer::QueryParameter.new('logins', :operator => '=', :value => 12)
+    @report.apply_params(params)
+    assert_equal "SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12", @report.runnable_sql
+  end
+
+  def test_apply_params_to_existing_where
+    base_sql = "SELECT id, name FROM users"
+    conditions = {'id = 2' => "SELECT id, name FROM users WHERE id = 2 AND name = 'John'",
+                  'id IS NULL' => "SELECT id, name FROM users WHERE id IS NULL AND name = 'John'",
+                  'id IS NOT NULL' => "SELECT id, name FROM users WHERE id IS NOT NULL AND name = 'John'",
+                  'active' => "SELECT id, name FROM users WHERE active = 't' AND name = 'John'",
+                  'NOT active' => "SELECT id, name FROM users WHERE active = 'f' AND name = 'John'",
+                  "id = 3 AND name <> 'Fred'" => "SELECT id, name FROM users WHERE id = 3 AND name <> 'Fred' AND name = 'John'"}
+    conditions.each do |cond, expect|
+      @report.sql = base_sql + ' WHERE ' + cond
+      params = []
+      params << Dataminer::QueryParameter.new('name', :operator => '=', :value => 'John')
+      @report.apply_params(params)
+      assert_equal expect, @report.runnable_sql
+    end
+  end
 
 end
