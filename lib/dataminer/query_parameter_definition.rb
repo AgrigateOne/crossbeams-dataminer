@@ -5,18 +5,18 @@ module Dataminer
 
     def initialize(column, options={})
       @column        = column
-      @caption       = @column.caption
-      @data_type     = options[:data_type]    || :string # maybe just use from columns?
+      @caption       = @column
+      @data_type     = options[:data_type]    || :string
       @control_type  = options[:control_type] || :text
       @list_def      = options[:list_def]
-      @ordered_list  = @list_def && @list_def =~ /order\s+by/i
+      @ordered_list  = @list_def && @list_def.is_a?(String) && @list_def =~ /order\s+by/i
       @ui_priority   = options[:ui_priority] || 1
       @default_value = options[:default_value]
     end
 
     # TODO: validate attributes...
 
-    def list_is_orderd?
+    def list_is_ordered?
       @ordered_list
     end
 

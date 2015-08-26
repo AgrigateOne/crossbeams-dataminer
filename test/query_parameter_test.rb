@@ -9,7 +9,7 @@ class QueryParameterTest < Minitest::Test
 
   def test_valid_operators
     param = Dataminer::QueryParameter.new('col')
-    valids = %w{= >= <= <> > < between starts_with ends_with contains is not}
+    valids = %w{= >= <= <> > < between starts_with ends_with contains is not in}
     invalids = %w{12 www isnt == like}
     valids.each do |op|
       assert param.operator = op
@@ -20,7 +20,7 @@ class QueryParameterTest < Minitest::Test
   end
 
   def test_operator_translations
-    same_ops           = %w{= >= <= <> > < is not between}
+    same_ops           = %w{= >= <= <> > < is not between in}
     ops                = Hash[same_ops.zip same_ops]
     ops['starts_with'] = '~~'
     ops['ends_with']   = '~~'
