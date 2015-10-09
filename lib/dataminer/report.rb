@@ -1,19 +1,30 @@
 module Dataminer
 
   class Report
-    attr_accessor :sql, :columns
+    attr_accessor :sql, :columns, :limit, :offset,
+      :query_parameter_definitions, :caption #name?...
+
+    def initialize(caption=nil)
+      @limit   = nil
+      @offset  = nil
+      @columns = []
+      @sql     = nil
+      @query_parameter_definitions = []
+      @caption = caption
+    end
 
     def sql=(value)
+      @columns.clear
+
       @parsed_sql = PgQuery.parse(value)
-      # @columns = @parsed_sql.parsetree[0]['SELECT']['targetList'].map {|r| get_column_name(r['RESTARGET']) }
-      @columns = []
       @parsed_sql.parsetree[0]['SELECT']['targetList'].each_with_index {|t,i| @columns << Column.create_from_parse(i+1, t['RESTARGET']) }
-      # if @columns.include?('A_STAR') # one of the columns is "*"...
       if @columns.any? {|a| a.name.include?('A_STAR') } # one of the columns is "*"...
-      #if @parsed_sql.parsetree[0]['SELECT']['targetList'][0]['RESTARGET']['val']['COLUMNREF']['fields'].any? {|f| f.is_a?(Hash) && f.keys.include?('A_STAR') }
         raise ArgumentError, 'Cannot have * as a column selector'
       end
-      @sql = value
+
+      @limit  = limit_from_sql
+      @offset = offset_from_sql
+      @sql    = value
 
     rescue PgQuery::ParseError => e
       raise SyntaxError, e.message
@@ -28,6 +39,10 @@ module Dataminer
     # This should be changed to allow for the case where some parameters are already in place...
     def apply_params(params, options={})
       @modified_parse = @parsed_sql.dup unless options[:prepared_parsetree]
+
+      apply_limit
+      apply_offset
+
       return if params.length == 0
 
       # How to merge params if existing?
@@ -38,19 +53,54 @@ module Dataminer
           @modified_parse.parsetree[0]['SELECT']['whereClause'] = combine_params_for_where(params)
         end
       else
-        curr_where = @modified_parse.parsetree[0]['SELECT']['whereClause'].dup
+        curr_where  = @modified_parse.parsetree[0]['SELECT']['whereClause'].dup
         exist_where = @parsed_sql.deparse([curr_where])
-        plus_parms = QueryParameter.reverse_engineer_from_string(exist_where)
+        plus_parms  = QueryParameter.reverse_engineer_from_string(exist_where)
         @modified_parse.parsetree[0]['SELECT']['whereClause'] = combine_params_for_where(plus_parms + params)
       end
     end
 
+    def limit_from_sql
+      limit_clause = @parsed_sql.parsetree[0]['SELECT']['limitCount']
+      return nil if limit_clause.nil?
+
+      limit_clause["A_CONST"]["val"]
+    end
+
+    def apply_limit
+      if @limit.nil? || @limit.zero?
+        @modified_parse.parsetree[0]['SELECT']['limitCount'] = nil
+      else
+        @modified_parse.parsetree[0]['SELECT']['limitCount'] = {"A_CONST"=>{"val"=>@limit}}
+      end
+    end
+
+    def offset_from_sql
+      offset_clause = @parsed_sql.parsetree[0]['SELECT']['limitOffset']
+      return nil if offset_clause.nil?
+
+      offset_clause["A_CONST"]["val"]
+    end
+
+    def apply_offset
+      if @offset.nil? || @offset.zero?
+        @modified_parse.parsetree[0]['SELECT']['limitOffset'] = nil
+      else
+        @modified_parse.parsetree[0]['SELECT']['limitOffset'] = {"A_CONST"=>{"val"=>@offset}}
+      end
+    end
+
     def show_tree
-      puts @modified_parse.parsetree[0].inspect
+      @modified_parse.parsetree[0].inspect
     end
 
     def runnable_sql
       (@modified_parse || @parsed_sql).deparse
+    end
+
+    #TOTEST
+    def column(name)
+      @columns.find {|a| a.name == name}
     end
 
     private

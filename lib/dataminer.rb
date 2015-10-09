@@ -1,5 +1,6 @@
 require "dataminer/version"
 require "dataminer/report"
+require "dataminer/report_definition"
 require "dataminer/column"
 require "dataminer/query_parameter"
 require "dataminer/query_parameter_definition"

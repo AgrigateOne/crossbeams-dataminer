@@ -1,7 +1,7 @@
 module Dataminer
 
   class Column
-    attr_accessor :name, :sequence_no, :caption, :namespaced_name
+    attr_accessor :name, :sequence_no, :caption, :namespaced_name, :data_type
 
     def initialize(sequence_no, parse_path, options={})
       @name         = get_name(parse_path)
@@ -10,7 +10,7 @@ module Dataminer
       @parse_path   = parse_path
       @caption      = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/) { |match| match.upcase }
       @width        = options[:width]
-      @datatype     = options[:data_type]    || :string
+      @data_type    = options[:data_type]    || :string
       @format       = options[:format]
       @hide         = options[:hide]         || false
 

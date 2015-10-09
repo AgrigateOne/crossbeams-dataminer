@@ -63,4 +63,16 @@ class ReportTest < Minitest::Test
     end
   end
 
+  def test_find_column
+    @report.sql = "SELECT id, name AS login FROM users;"
+    assert_equal 'id', @report.column('id').name
+    assert_equal 'login', @report.column('login').name
+    assert_equal 'name', @report.column('login').namespaced_name
+  end
+
+  def test_function_not_table
+    # Should take params and add between brackets - retaining any existing params.
+    skip "SELECT storeopeninghours_tostring AS tmp from storeopeninghours_tostring('123');"
+  end
+
 end

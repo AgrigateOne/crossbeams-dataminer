@@ -4,8 +4,8 @@ module Dataminer
     attr_reader :operator
     attr_accessor :value
 
-    NULL_VALUE      = /NULL/i
-    VALID_OPERATORS = %w{= >= <= <> > < between starts_with ends_with contains is not in}
+    NULL_TEST       = /NULL/i
+    VALID_OPERATORS = %w{= >= <= <> > < between starts_with ends_with contains in is_null not_null}
 
     # FUTURE VALIDATIONS
     # date   => only type for between
@@ -14,15 +14,29 @@ module Dataminer
     # value  == null, operator must be is/not
     #
     # NEED data_type to validate operator/value combinations
-    def initialize(column_name, options={})
-      @qualified_column_name = column_name.is_a?(String) ? column_name.split('.') : Array(column_name)
+    def initialize(namespaced_name, options={})
+      @qualified_column_name = namespaced_name.is_a?(String) ? namespaced_name.split('.') : Array(namespaced_name)
       @operator       = options[:operator] || '='
       check_for_valid_operator(@operator)
       @value          = options[:value]
       @from_value     = options[:from_value]
       @to_value       = options[:to_value]
-      @value_range    = options[:value_range]
+      @value_range    = options[:value_range] || []
       @is_an_or_range = options[:is_an_or_range] || false
+      @convert        = options[:convert] || :to_S
+    end
+
+    def check_for_valid_operator_value_combination
+      case @operator
+      when 'between'
+        raise ArgumentError, 'Must have from and to values for BETWEEN operator' if @from_value.nil? || @to_value.nil? || @from_value.empty? || @to_value.empty?
+        raise ArgumentError, 'End of date range cannot be less than start of range for BETWEEN operator' if @from_value > @to_value
+      when 'in'
+        raise ArgumentError, 'Must have range of values for IN operator' if @value_range.empty?
+      when 'is_null', 'not_null'
+      else
+        raise ArgumentError, 'Parameter must have a value' if @value.nil? #TODO Maybe need to be able to say "... WHERE xyz <> ''; " ????
+      end
     end
 
     def operator=(value)
@@ -33,6 +47,10 @@ module Dataminer
     def translate_expression
       if %w{starts_with contains ends_with}.include?(@operator)
         operator = '~~'
+      elsif 'not_null' == @operator
+        operator= 'is not'
+      elsif 'is_null' == @operator
+        operator= 'is'
       else
         operator = @operator
       end
@@ -50,8 +68,17 @@ module Dataminer
           "%#{@value}"
         when 'contains'
           "%#{@value}%"
+        when 'not_null', 'is_null'
+          'NULL'
         else
-          @value
+          case @convert
+          when :to_i
+            @value.to_i
+          when :to_f
+            @value.to_f
+          else
+            @value
+          end
         end
       end
 
@@ -62,8 +89,10 @@ module Dataminer
     # Handle OR and multiple values... also BETWEEN, IN...
 
     def to_ast
+      check_for_valid_operator_value_combination
+
       operator, value = translate_expression
-      if value =~ NULL_VALUE
+      if value =~ NULL_TEST
         if operator =~ /not/i
           {"NULLTEST"=>{"arg"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "nulltesttype"=>1, "argisrow"=>false}}
         else
@@ -113,9 +142,9 @@ module Dataminer
       else
         if ar.last =~ /null/i # Handle col IS NULL / col IS NOT NULL
           if ar[-2] =~ /not/i
-            op = 'not'
+            op = 'not_null'
           else
-            op = 'is'
+            op = 'is_null'
           end
           QueryParameter.new(ar[0], :operator => op, :value => 'NULL')
         else # Handle col =/>/</etc value

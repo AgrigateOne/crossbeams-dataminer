@@ -10,6 +10,14 @@ class QueryParameterDefinitionTest < Minitest::Test
     assert_equal 1, param.ui_priority
   end
 
+  def test_caption
+    param = Dataminer::QueryParameterDefinition.new('col', caption: 'Other')
+    assert_equal 'Other', param.caption
+    assert_equal :string, param.data_type
+    assert_equal :text, param.control_type
+    assert_equal 1, param.ui_priority
+  end
+
   def test_ordered_sql_list
     param = Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => 'SELECT code FROM table ORDER BY code')
     assert param.list_is_ordered?
@@ -22,18 +30,18 @@ class QueryParameterDefinitionTest < Minitest::Test
 
   def test_build_array_list
     param = Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => [1,2,3])
-    assert_equal [1,2,3], param.build_list
-    assert_equal [1,2,3], param.build_list {|sql| ['a','b'] }
+    assert_equal [1,2,3], param.build_list.list_values
+    assert_equal [1,2,3], param.build_list {|sql| ['a','b'] }.list_values
   end
 
   def test_build_hash_list
     param = Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => {'a' => 1, 'b' => 2, 'c' => 3})
-    assert_equal [['a',1],['b',2],['c',3]], param.build_list
+    assert_equal [['a',1],['b',2],['c',3]], param.build_list.list_values
   end
 
   def test_build_list_from_block
     param = Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => 'SELECT code FROM table ORDER BY code')
-    assert_equal [['a',1],['b',2],['c',3]], param.build_list {|sql| {'a' => 1, 'b' => 2, 'c' => 3} }
+    assert_equal [['a',1],['b',2],['c',3]], param.build_list {|sql| {'a' => 1, 'b' => 2, 'c' => 3} }.list_values
   end
 
 end
