@@ -26,7 +26,7 @@ class ReportTest < Minitest::Test
   def test_replace_where
     @report.sql = "SELECT id, name FROM users WHERE id = 21"
     params = []
-    params << Dataminer::QueryParameter.new('name', :operator => '=', :value => 'Fred')
+    params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'Fred'))
     @report.replace_where(params)
     assert_equal "SELECT id, name FROM users WHERE name = 'Fred'", @report.runnable_sql
   end
@@ -40,8 +40,8 @@ class ReportTest < Minitest::Test
   def test_apply_params
     @report.sql = "SELECT id, name FROM users"
     params = []
-    params << Dataminer::QueryParameter.new('name', :operator => '=', :value => 'Fred')
-    params << Dataminer::QueryParameter.new('logins', :operator => '=', :value => 12)
+    params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'Fred'))
+    params << Dataminer::QueryParameter.new('logins', Dataminer::OperatorValue.new('=', 12))
     @report.apply_params(params)
     assert_equal "SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12", @report.runnable_sql
   end
@@ -57,7 +57,7 @@ class ReportTest < Minitest::Test
     conditions.each do |cond, expect|
       @report.sql = base_sql + ' WHERE ' + cond
       params = []
-      params << Dataminer::QueryParameter.new('name', :operator => '=', :value => 'John')
+      params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'John'))
       @report.apply_params(params)
       assert_equal expect, @report.runnable_sql
     end

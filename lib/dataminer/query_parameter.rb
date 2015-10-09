@@ -1,11 +1,8 @@
 module Dataminer
 
   class QueryParameter
-    attr_reader :operator
-    attr_accessor :value
 
-    NULL_TEST       = /NULL/i
-    VALID_OPERATORS = %w{= >= <= <> > < between starts_with ends_with contains in is_null not_null}
+    NULL_TEST = /NULL/i
 
     # FUTURE VALIDATIONS
     # date   => only type for between
@@ -14,102 +11,37 @@ module Dataminer
     # value  == null, operator must be is/not
     #
     # NEED data_type to validate operator/value combinations
-    def initialize(namespaced_name, options={})
+    def initialize(namespaced_name, op_val, options={})
       @qualified_column_name = namespaced_name.is_a?(String) ? namespaced_name.split('.') : Array(namespaced_name)
-      @operator       = options[:operator] || '='
-      check_for_valid_operator(@operator)
-      @value          = options[:value]
-      @from_value     = options[:from_value]
-      @to_value       = options[:to_value]
-      @value_range    = options[:value_range] || []
+      @op_val         = op_val
       @is_an_or_range = options[:is_an_or_range] || false
       @convert        = options[:convert] || :to_S
-    end
-
-    def check_for_valid_operator_value_combination
-      case @operator
-      when 'between'
-        raise ArgumentError, 'Must have from and to values for BETWEEN operator' if @from_value.nil? || @to_value.nil? || @from_value.empty? || @to_value.empty?
-        raise ArgumentError, 'End of date range cannot be less than start of range for BETWEEN operator' if @from_value > @to_value
-      when 'in'
-        raise ArgumentError, 'Must have range of values for IN operator' if @value_range.empty?
-      when 'is_null', 'not_null'
-      else
-        raise ArgumentError, 'Parameter must have a value' if @value.nil? #TODO Maybe need to be able to say "... WHERE xyz <> ''; " ????
-      end
-    end
-
-    def operator=(value)
-      check_for_valid_operator(value)
-      @operator = value
-    end
-
-    def translate_expression
-      if %w{starts_with contains ends_with}.include?(@operator)
-        operator = '~~'
-      elsif 'not_null' == @operator
-        operator= 'is not'
-      elsif 'is_null' == @operator
-        operator= 'is'
-      else
-        operator = @operator
-      end
-
-      value = case @value
-      when true
-        't'
-      when false
-        'f'
-      else
-        case @operator
-        when 'starts_with'
-          "#{@value}%"
-        when 'ends_with'
-          "%#{@value}"
-        when 'contains'
-          "%#{@value}%"
-        when 'not_null', 'is_null'
-          'NULL'
-        else
-          case @convert
-          when :to_i
-            @value.to_i
-          when :to_f
-            @value.to_f
-          else
-            @value
-          end
-        end
-      end
-
-      return operator, value
-
     end
 
     # Handle OR and multiple values... also BETWEEN, IN...
 
     def to_ast
-      check_for_valid_operator_value_combination
+      operator = @op_val.operator_for_sql
+      values   = @op_val.values_for_sql
 
-      operator, value = translate_expression
-      if value =~ NULL_TEST
+      if values.first =~ NULL_TEST
         if operator =~ /not/i
           {"NULLTEST"=>{"arg"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "nulltesttype"=>1, "argisrow"=>false}}
         else
           {"NULLTEST"=>{"arg"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "nulltesttype"=>0, "argisrow"=>false}}
         end
       elsif operator =~ /between/i
-        {"AEXPR AND"=>{"lexpr"=>{"AEXPR"=>{"name"=>[">="], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>{"A_CONST"=>{"val"=>@from_value}}}}, "rexpr"=>{"AEXPR"=>{"name"=>["<="], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>{"A_CONST"=>{"val"=>@to_value}}}}}}
+        {"AEXPR AND"=>{"lexpr"=>{"AEXPR"=>{"name"=>[">="], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>{"A_CONST"=>{"val"=>values[0]}}}}, "rexpr"=>{"AEXPR"=>{"name"=>["<="], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>{"A_CONST"=>{"val"=>values[1]}}}}}}
       elsif operator =~ /in/i
-        values = @value_range.map {|v| {"A_CONST"=>{"val"=>v}} }
-        {"AEXPR IN"=>{"name"=>["="], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>values}}
+        val_range = values.map {|v| {"A_CONST"=>{"val"=>v}} }
+        {"AEXPR IN"=>{"name"=>["="], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>val_range}}
       elsif @is_an_or_range
-        or_params = @value_range.map {|val| {"AEXPR"=>{"name"=>[operator], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>{"A_CONST"=>{"val"=>val}}}}}
+        or_params = values.map {|val| {"AEXPR"=>{"name"=>[operator], "lexpr"=>{"COLUMNREF"=>{"fields"=>@qualified_column_name}}, "rexpr"=>{"A_CONST"=>{"val"=>val}}}}}
         hash = {}
         join_or_params(hash, or_params)
         hash
       else
-        {"AEXPR"=> {"name"=> [operator ], "lexpr"=> {"COLUMNREF"=> {"fields"=> @qualified_column_name } }, "rexpr"=> {"A_CONST"=> {"val"=>value } } } }
+        {"AEXPR"=> {"name"=> [operator ], "lexpr"=> {"COLUMNREF"=> {"fields"=> @qualified_column_name } }, "rexpr"=> {"A_CONST"=> {"val"=>values.first } } } }
       end
     end
 
@@ -136,9 +68,11 @@ module Dataminer
     def self.make_params_from_clause(clause)
       ar = clause.split(/\s+/)
       if ar.length == 1                       # boolean col is true  - WHERE bool_column
-        QueryParameter.new(ar[0], :operator => '=', :value => true)
+        ov = OperatorValue.new('=', true)
+        QueryParameter.new(ar[0], ov)
       elsif ar.length == 2 && ar[0] =~ /not/i # boolean col is false - WHERE NOT bool_column
-        QueryParameter.new(ar[1], :operator => '=', :value => false)
+        ov = OperatorValue.new('=', false)
+        QueryParameter.new(ar[1], ov)
       else
         if ar.last =~ /null/i # Handle col IS NULL / col IS NOT NULL
           if ar[-2] =~ /not/i
@@ -146,7 +80,8 @@ module Dataminer
           else
             op = 'is_null'
           end
-          QueryParameter.new(ar[0], :operator => op, :value => 'NULL')
+          ov = OperatorValue.new(op, 'NULL')
+          QueryParameter.new(ar[0], ov)
         else # Handle col =/>/</etc value
           value = ar[2]
           if value.start_with?("'")
@@ -154,13 +89,10 @@ module Dataminer
           else
             value = ar[2].to_i
           end
-          QueryParameter.new(ar[0], :operator => ar[1], :value => value)
+          ov = OperatorValue.new(ar[1], value)
+          QueryParameter.new(ar[0], ov)
         end
       end
-    end
-
-    def check_for_valid_operator(operator)
-      raise ArgumentError, "Invalid operator - \"#{operator}\"" unless VALID_OPERATORS.include?(operator.downcase)
     end
 
     def join_or_params(hash,params)
