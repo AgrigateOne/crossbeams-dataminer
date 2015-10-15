@@ -17,6 +17,10 @@ module Dataminer
 
     # TODO: validate attributes...
 
+    def ==(other)
+      other.column == self.column
+    end
+
     def list_is_ordered?
       @ordered_list
     end
@@ -25,17 +29,12 @@ module Dataminer
       "PARAM COL: #{@column}: CAPTION: #{@caption} TYPE: #{@data_type} UI: #{@control_type} DEFAULT: #{@default_value}"
     end
 
-    def to_hash
-      {column: @column, caption: @caption, data_type: @data_type, control_type: @control_type, default_value: @default_value, ordered_list: @ordered_list,
-       ui_priority: @ui_priority, list_values: alter_it(@list_values)}
-    end
+    def to_hash(with_list_values=false)
+      xtra = with_list_values ? {list_values: alter_it(@list_values)} : {}
 
-    def alter_it(ar)
-      if ar.first.is_a?(Array)
-        ar.map {|a| {:label => a.first, :val => a.last} }
-      else
-        ar.map {|a| {:label => a, :val => a} }
-      end
+      {column: @column, caption: @caption, data_type: @data_type, control_type: @control_type,
+       default_value: @default_value, ordered_list: @ordered_list,
+       ui_priority: @ui_priority, list_def: @list_def}.merge(xtra)
     end
 
     # array_val = parm.build_list {|sql| ActiveRecord::Base.connection.select_all(sql) }
@@ -66,6 +65,16 @@ module Dataminer
       end
       #@list_values
       self
+    end
+
+    private
+
+    def alter_it(ar)
+      if ar.first.is_a?(Array)
+        ar.map {|a| {:label => a.first, :val => a.last} }
+      else
+        ar.map {|a| {:label => a, :val => a} }
+      end
     end
 
   end

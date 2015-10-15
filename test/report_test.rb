@@ -20,7 +20,7 @@ class ReportTest < Minitest::Test
 
   def test_that_it_handles_named_cols
     @report.sql = "SELECT id, name AS login FROM users;"
-    assert_equal ['id', 'login'], @report.columns.map {|c| c.name }
+    assert_equal ['id', 'login'], @report.ordered_columns.map {|c| c.name }
   end
 
   def test_replace_where
@@ -63,11 +63,73 @@ class ReportTest < Minitest::Test
     end
   end
 
+  def test_apply_params_datatype
+    base_sql = "SELECT id, name FROM users"
+    conditions = [[nil, '12', "SELECT id, name FROM users WHERE id = '12'"],
+                  [:integer, '12', "SELECT id, name FROM users WHERE id = 12"],
+                  [:string, '12', "SELECT id, name FROM users WHERE id = '12'"],
+                  [nil, 12, "SELECT id, name FROM users WHERE id = 12"],
+                  [:integer, 12, "SELECT id, name FROM users WHERE id = 12"],
+                  [:string, 12, "SELECT id, name FROM users WHERE id = 12"]]
+    conditions.each do |data_type, id, expect|
+      @report.sql = base_sql
+      params = []
+      params << Dataminer::QueryParameter.new('id', Dataminer::OperatorValue.new('=', id, data_type))
+      @report.apply_params(params)
+      assert_equal expect, @report.runnable_sql
+    end
+  end
+
   def test_find_column
     @report.sql = "SELECT id, name AS login FROM users;"
     assert_equal 'id', @report.column('id').name
     assert_equal 'login', @report.column('login').name
     assert_equal 'name', @report.column('login').namespaced_name
+  end
+
+  def test_column_order
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.columns['id'].sequence_no = 3
+    assert_equal ['login','id'], @report.ordered_columns.map {|a| a.name }
+  end
+
+  def test_unique_column_names
+    assert_raises(ArgumentError) { @report.sql = "SELECT id, name, id FROM users;" }
+  end
+
+  def test_unigue_parameter_definitions
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.add_parameter_definition(Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    assert_raises(ArgumentError) { @report.add_parameter_definition(Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil)) }
+  end
+
+  def test_portable_definition
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.columns['id'].sequence_no = 3
+    @report.columns['id'].caption = 'TheId'
+    @report.add_parameter_definition( Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    portable = @report.to_hash
+    assert 'TheId' == portable[:columns]['id'][:caption]
+    assert 3 == portable[:columns]['id'][:sequence_no]
+    assert 'Login' == portable[:query_parameter_definitions].first[:caption]
   end
 
   def test_function_not_table

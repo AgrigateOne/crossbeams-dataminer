@@ -25,6 +25,12 @@ module Dataminer
       new(seq, path)
     end
 
+    def to_hash
+      portable = {}
+      [:name, :sequence_no, :caption, :namespaced_name, :data_type].each {|a| portable[a] = self.send(a) }
+      portable
+    end
+
     private
 
     def get_name(restarget)

@@ -1,26 +1,38 @@
 module Dataminer
 
   class Report
-    attr_accessor :sql, :columns, :limit, :offset,
-      :query_parameter_definitions, :caption #name?...
+    attr_accessor :sql, :columns, :limit, :offset, :caption #name?...
+    attr_reader :query_parameter_definitions
 
     def initialize(caption=nil)
-      @limit   = nil
-      @offset  = nil
-      @columns = []
-      @sql     = nil
+      @limit                       = nil
+      @offset                      = nil
+      @columns                     = {}
+      @sql                         = nil
       @query_parameter_definitions = []
-      @caption = caption
+      @caption                     = caption
+    end
+
+    def ordered_columns
+      @columns.map {|k,v| v }.sort_by {|a| a.sequence_no }
     end
 
     def sql=(value)
       @columns.clear
+      column_names = []
 
       @parsed_sql = PgQuery.parse(value)
-      @parsed_sql.parsetree[0]['SELECT']['targetList'].each_with_index {|t,i| @columns << Column.create_from_parse(i+1, t['RESTARGET']) }
-      if @columns.any? {|a| a.name.include?('A_STAR') } # one of the columns is "*"...
+      @parsed_sql.parsetree[0]['SELECT']['targetList'].each_with_index do |t,i|
+        col = Column.create_from_parse(i+1, t['RESTARGET'])
+        @columns[col.name] = col
+        column_names << col.name
+      end
+
+      if @columns.keys.any? {|a| a.include?('A_STAR') } # one of the columns is "*"...
         raise ArgumentError, 'Cannot have * as a column selector'
       end
+
+      raise ArgumentError, 'SQL has duplicate column names' unless column_names.length == column_names.uniq.length
 
       @limit  = limit_from_sql
       @offset = offset_from_sql
@@ -98,9 +110,22 @@ module Dataminer
       (@modified_parse || @parsed_sql).deparse
     end
 
-    #TOTEST
     def column(name)
-      @columns.find {|a| a.name == name}
+      @columns[name]
+    end
+
+    def to_hash
+      portable = {}
+      [:caption, :sql,:limit, :offset].each {|k| portable[k] = self.send(k) }
+      portable[:columns] = {}
+      columns.each {|name, col| portable[:columns][name] = col.to_hash }
+      portable[:query_parameter_definitions] = query_parameter_definitions.map {|q| q.to_hash }
+      portable
+    end
+
+    def add_parameter_definition(param_def)
+      raise ArgumentError, 'Duplicate parameter definition' if query_parameter_definitions.any? {|other| param_def == other }
+      query_parameter_definitions << param_def
     end
 
     private
