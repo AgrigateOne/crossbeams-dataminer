@@ -37,6 +37,11 @@ module Dataminer
        ui_priority: @ui_priority, list_def: @list_def}.merge(xtra)
     end
 
+    def self.create_from_hash(hash)
+      new = self.new(hash[:column], hash)
+      new
+    end
+
     # array_val = parm.build_list {|sql| ActiveRecord::Base.connection.select_all(sql) }
     # ... or pass db connection?
     def build_list(&block)

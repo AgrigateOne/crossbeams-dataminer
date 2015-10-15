@@ -132,6 +132,49 @@ class ReportTest < Minitest::Test
     assert 'Login' == portable[:query_parameter_definitions].first[:caption]
   end
 
+  def test_recreate_definition
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.columns['id'].sequence_no = 3
+    @report.columns['id'].caption = 'TheId'
+    @report.add_parameter_definition( Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    portable = @report.to_hash
+    rpt = Dataminer::Report.new
+    rpt.update_from_hash(portable)
+    assert rpt.caption == @report.caption
+    assert rpt.columns['id'].sequence_no == 3
+    assert rpt.columns['id'].caption     == 'TheId'
+    assert rpt.query_parameter_definitions.length == @report.query_parameter_definitions.length
+  end
+
+  def test_yaml_persistor
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.columns['id'].sequence_no = 3
+    @report.columns['id'].caption = 'TheId'
+    @report.add_parameter_definition( Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    orig = @report.to_hash
+    fn = 'testyml.yml'
+    yp = Dataminer::YamlPersistor.new(fn)
+    @report.save(yp)
+    begin
+      rpt = Dataminer::Report.load(yp)
+      assert orig == rpt.to_hash
+    ensure
+      File.delete(fn)
+    end
+  end
+
   def test_function_not_table
     # Should take params and add between brackets - retaining any existing params.
     skip "SELECT storeopeninghours_tostring AS tmp from storeopeninghours_tostring('123');"

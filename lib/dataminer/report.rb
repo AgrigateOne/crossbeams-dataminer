@@ -115,12 +115,40 @@ module Dataminer
     end
 
     def to_hash
-      portable = {}
-      [:caption, :sql,:limit, :offset].each {|k| portable[k] = self.send(k) }
-      portable[:columns] = {}
-      columns.each {|name, col| portable[:columns][name] = col.to_hash }
-      portable[:query_parameter_definitions] = query_parameter_definitions.map {|q| q.to_hash }
-      portable
+      hash = {}
+      [:caption, :sql,:limit, :offset].each {|k| hash[k] = self.send(k) }
+      hash[:columns] = {}
+      columns.each {|name, col| hash[:columns][name] = col.to_hash }
+      hash[:query_parameter_definitions] = query_parameter_definitions.map {|q| q.to_hash }
+      hash
+    end
+
+    def update_from_hash(hash)
+      @caption = hash[:caption]
+      self.sql = hash[:sql]
+
+      @limit   = hash[:limit]
+      @offset  = hash[:offset]
+
+      hash[:columns].each {|name, column| @columns[name].modify_from_hash(column) }
+
+      @query_parameter_definitions = []
+      hash[:query_parameter_definitions].each {|qpd| @query_parameter_definitions << QueryParameterDefinition.create_from_hash(qpd) }
+
+      self
+    end
+
+    def self.create_from_hash(hash)
+      new = self.new
+      new.update_from_hash(hash)
+    end
+
+    def save(persistor)
+      persistor.save(self.to_hash)
+    end
+
+    def self.load(persistor)
+      self.create_from_hash(persistor.to_hash)
     end
 
     def add_parameter_definition(param_def)

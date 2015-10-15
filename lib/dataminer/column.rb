@@ -26,9 +26,16 @@ module Dataminer
     end
 
     def to_hash
-      portable = {}
-      [:name, :sequence_no, :caption, :namespaced_name, :data_type].each {|a| portable[a] = self.send(a) }
-      portable
+      hash = {}
+      [:name, :sequence_no, :caption, :namespaced_name, :data_type].each {|a| hash[a] = self.send(a) }
+      hash
+    end
+
+    def modify_from_hash(column)
+      self.sequence_no     = column[:sequence_no]
+      self.namespaced_name = column[:namespaced_name]
+      self.data_type       = column[:data_type]
+      self.caption         = column[:caption]
     end
 
     private
