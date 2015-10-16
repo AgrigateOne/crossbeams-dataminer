@@ -1,7 +1,9 @@
 module Dataminer
 
   class Column
-    attr_accessor :name, :sequence_no, :caption, :namespaced_name, :data_type
+    attr_accessor :name, :sequence_no, :caption, :namespaced_name, :data_type,
+                  :width, :format, :hide, :groupable, :group_by_seq,
+                  :group_sum, :group_avg, :group_min, :group_max
 
     def initialize(sequence_no, parse_path, options={})
       @name         = get_name(parse_path)
@@ -17,8 +19,9 @@ module Dataminer
       @groupable    = options[:groupable]    || false
       @group_by_seq = options[:group_by_seq]
       @group_sum    = options[:group_sum]    || false
-      @group_avg    = options[:group_min]    || false
-      @group_min    = options[:group_max]    || false
+      @group_avg    = options[:group_avg]    || false
+      @group_min    = options[:group_min]    || false
+      @group_max    = options[:group_max]    || false
     end
 
     def self.create_from_parse(seq, path)
@@ -27,7 +30,9 @@ module Dataminer
 
     def to_hash
       hash = {}
-      [:name, :sequence_no, :caption, :namespaced_name, :data_type].each {|a| hash[a] = self.send(a) }
+      [:name, :sequence_no, :caption, :namespaced_name, :data_type, :width,
+       :format, :hide, :groupable, :group_by_seq,
+       :group_sum, :group_avg, :group_min, :group_max ].each {|a| hash[a] = self.send(a) }
       hash
     end
 
@@ -36,6 +41,15 @@ module Dataminer
       self.namespaced_name = column[:namespaced_name]
       self.data_type       = column[:data_type]
       self.caption         = column[:caption]
+      self.width           = column[:width]
+      self.format          = column[:format]
+      self.hide            = column[:hide]
+      self.groupable       = column[:groupable]
+      self.group_by_seq    = column[:group_by_seq]
+      self.group_sum       = column[:group_sum]
+      self.group_avg       = column[:group_avg]
+      self.group_min       = column[:group_min]
+      self.group_max       = column[:group_max]
     end
 
     private
