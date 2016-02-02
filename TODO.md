@@ -33,3 +33,18 @@
     * Several values of the same fields - bracketed OR clause.
     * Several values of diferent fields -  bracketed OR clause.
 
+## Join pruning
+
+With the use of view I recently had an uncomfortable feeling that queries can be done more simplistic, but did not know how to prove that. In Kromco's database we have views like vwcartons that join on tables which is not always necessary because the selected fields do not require it. These views are created as a "catch all" type of solution. Luckily Postgresql Optimizer/Planner can do join pruning. Unfortunately the planner/optimizer can also make mistakes.
+
+I realize this today while working with Jaspersoft's Adhoc query Tool which construct the sql statement by analyzing the fields which is used in a report and eliminate the join if the fields from that table is not used. 
+
+When i realize this I did some more test by changing inner joins to left join on fields which have the necessary foreign keys, this it fact did gave me on certain instances a 300% saving. By using left joins allowed the Optimizer/Planner to prune the joins, but it did not do it accurately on all instances. Which bring me to the point/question, do our dataminer do join construction/pruning?
+
+> If I understand you correctly, you would want functionality to remove a join from the SQL you provide when creating a yml report if there are no columns returned from that table?
+> i.e. functionality similar to what you describe from Jasper?
+
+
+Yes, that is what i am after. I hope we can implement those type of new framework improvements in a modular fashion?
+
+
