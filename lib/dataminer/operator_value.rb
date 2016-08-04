@@ -53,11 +53,11 @@ module Dataminer
         else
           case @operator
           when 'starts_with'
-            "#{value}%"
+            "'#{value}%'"
           when 'ends_with'
-            "%#{value}"
+            "'%#{value}'"
           when 'contains'
-            "%#{value}%"
+            "'%#{value}%'"
           when 'not_null', 'is_null'
             'NULL'
           else
@@ -67,7 +67,7 @@ module Dataminer
             when :number
               value.to_f
             else
-              value
+              "'#{value}'"
             end
           end
         end

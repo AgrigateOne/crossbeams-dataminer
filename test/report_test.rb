@@ -15,7 +15,7 @@ class ReportTest < Minitest::Test
 
   def test_that_it_does_not_reject_select_specific
     @report.sql = "SELECT id, name FROM users;"
-    assert_equal "SELECT id, name FROM users;", @report.sql
+    assert_equal %Q{SELECT id, name FROM users;}, @report.sql
   end
 
   def test_that_it_handles_named_cols
@@ -28,32 +28,33 @@ class ReportTest < Minitest::Test
     params = []
     params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'Fred'))
     @report.replace_where(params)
-    assert_equal "SELECT id, name FROM users WHERE name = 'Fred'", @report.runnable_sql
+    assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred'}, @report.runnable_sql
   end
 
   def test_apply_no_params
     @report.sql = "SELECT id, name FROM users"
     @report.apply_params([])
-    assert_equal "SELECT id, name FROM users", @report.runnable_sql
+    assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql
   end
 
   def test_apply_params
     @report.sql = "SELECT id, name FROM users"
     params = []
     params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'Fred'))
-    params << Dataminer::QueryParameter.new('logins', Dataminer::OperatorValue.new('=', 12))
+    params << Dataminer::QueryParameter.new('logins', Dataminer::OperatorValue.new('=', 12, :integer))
     @report.apply_params(params)
-    assert_equal "SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12", @report.runnable_sql
+    # assert_equal "SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12", @report.runnable_sql
+    assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred' AND "logins" = 12}, @report.runnable_sql
   end
 
   def test_apply_params_to_existing_where
     base_sql = "SELECT id, name FROM users"
-    conditions = {'id = 2' => "SELECT id, name FROM users WHERE id = 2 AND name = 'John'",
-                  'id IS NULL' => "SELECT id, name FROM users WHERE id IS NULL AND name = 'John'",
-                  'id IS NOT NULL' => "SELECT id, name FROM users WHERE id IS NOT NULL AND name = 'John'",
-                  'active' => "SELECT id, name FROM users WHERE active = 't' AND name = 'John'",
-                  'NOT active' => "SELECT id, name FROM users WHERE active = 'f' AND name = 'John'",
-                  "id = 3 AND name <> 'Fred'" => "SELECT id, name FROM users WHERE id = 3 AND name <> 'Fred' AND name = 'John'"}
+    conditions = {'id = 2' => %Q{SELECT "id", "name" FROM "users" WHERE "id" = 2 AND "name" = 'John'},
+                  'id IS NULL' => %Q{SELECT "id", "name" FROM "users" WHERE "id" IS NULL AND "name" = 'John'},
+                  'id IS NOT NULL' => %Q{SELECT "id", "name" FROM "users" WHERE "id" IS NOT NULL AND "name" = 'John'},
+                  'active' => %Q{SELECT "id", "name" FROM "users" WHERE "active" AND "name" = 'John'},
+                  'NOT active' => %Q{SELECT "id", "name" FROM "users" WHERE NOT "active" AND "name" = 'John'},
+                  "id = 3 AND name <> 'Fred'" => %Q{SELECT "id", "name" FROM "users" WHERE "id" = 3 AND "name" <> 'Fred' AND "name" = 'John'}}
     conditions.each do |cond, expect|
       @report.sql = base_sql + ' WHERE ' + cond
       params = []
@@ -64,13 +65,14 @@ class ReportTest < Minitest::Test
   end
 
   def test_apply_params_datatype
-    base_sql = "SELECT id, name FROM users"
-    conditions = [[nil, '12', "SELECT id, name FROM users WHERE id = '12'"],
-                  [:integer, '12', "SELECT id, name FROM users WHERE id = 12"],
-                  [:string, '12', "SELECT id, name FROM users WHERE id = '12'"],
-                  [nil, 12, "SELECT id, name FROM users WHERE id = 12"],
-                  [:integer, 12, "SELECT id, name FROM users WHERE id = 12"],
-                  [:string, 12, "SELECT id, name FROM users WHERE id = 12"]]
+    base_sql = %Q{SELECT "id", "name" FROM "users"}
+    conditions = [[nil, '12', %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}],
+                  [:integer, '12', %Q{SELECT "id", "name" FROM "users" WHERE "id" = 12}],
+                  [:string, '12', %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}],
+                  [nil, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}],
+                  [:integer, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = 12}],
+                  # [:string, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = 12}]]
+                  [:string, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}]]
     conditions.each do |data_type, id, expect|
       @report.sql = base_sql
       params = []
@@ -95,6 +97,7 @@ class ReportTest < Minitest::Test
 
   def test_unique_column_names
     assert_raises(ArgumentError) { @report.sql = "SELECT id, name, id FROM users;" }
+    assert_raises(ArgumentError) { @report.sql = "SELECT id, name, another_field AS id FROM users;" }
   end
 
   def test_unigue_parameter_definitions
@@ -175,6 +178,8 @@ class ReportTest < Minitest::Test
     end
   end
 
+  #TODO: Change dataminer so that it can run a function query as if SQL
+  #      - with columns returned and params provided...
   def test_function_not_table
     # Should take params and add between brackets - retaining any existing params.
     skip "SELECT storeopeninghours_tostring AS tmp from storeopeninghours_tostring('123');"

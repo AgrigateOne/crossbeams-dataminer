@@ -40,7 +40,7 @@ class OperatorValueTest < Minitest::Test
   end
 
   def test_like_operator_values_for_sql
-    {'starts_with' => [ "VAL%" ], 'contains' => [ "%VAL%" ], 'ends_with' => [ '%VAL' ]}.each do |in_op, out_val|
+    {'starts_with' => [ "'VAL%'" ], 'contains' => [ "'%VAL%'" ], 'ends_with' => [ "'%VAL'" ]}.each do |in_op, out_val|
       opval = Dataminer::OperatorValue.new(in_op, 'VAL')
       val = opval.values_for_sql
       assert_equal out_val, val

@@ -1,4 +1,15 @@
 module Dataminer
+    # {"ResTarget"=>{"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"id"}}], "location"=>7}}, "location"=>7}}
+    # {"ResTarget"=>{"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"u"}}, {"String"=>{"str"=>"id"}}], "location"=>7}}, "location"=>7}}
+    # {"ResTarget"=>{"name"=>"nine", "val"=>{"A_Const"=>{"val"=>{"Integer"=>{"ival"=>9}}, "location"=>21}}, "location"=>21}}
+    # {"ResTarget"=>{"val"=>{"ColumnRef"=>{"fields"=>[{"A_Star"=>{}}], "location"=>7}}, "location"=>7}}
+    # {"ResTarget"=>
+    #     {"val"=>
+    #       {"FuncCall"=>
+    #         {"funcname"=>[{"String"=>{"str"=>"date"}}],
+    #          "args"=>[{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"u"}}, {"String"=>{"str"=>"created_at"}}], "location"=>37}}],
+    #          "location"=>32}},
+    #      "location"=>32}}
 
   class Column
     attr_accessor :name, :sequence_no, :caption, :namespaced_name, :data_type,
@@ -54,30 +65,41 @@ module Dataminer
 
     private
 
+    # Column name - returns field name or its alias if provided.
     def get_name(restarget)
       if restarget['name']
         restarget['name']
       else
-        if restarget['val']['FUNCCALL']
-          restarget['val']['FUNCCALL']['funcname'].last
+        if restarget['val'][PgQuery::FUNC_CALL]
+          restarget['val'][PgQuery::FUNC_CALL]['funcname'].last[PgQuery::STRING]['str']
         else
-          fld = restarget['val']['COLUMNREF']['fields'].last
-          if fld.is_a? String
-            fld
-          else
-            fld.keys[0]
-          end
+          fld = restarget['val'][PgQuery::COLUMN_REF]['fields'].last
+          field_parse(fld)
         end
       end
     end
 
+    # Namespaced name as alias.fieldname. Does not return the aliased name.
     def get_namespaced_name(restarget)
-      if restarget['val']['FUNCCALL']
-        restarget['val']['FUNCCALL']['funcname'].join('.') #.......
-      elsif restarget['val']['COLUMNREF']
-        restarget['val']['COLUMNREF']['fields'].join('.')
+      if restarget['val'][PgQuery::FUNC_CALL]
+        restarget['val'][PgQuery::FUNC_CALL]['funcname'].join('.') #....... #FIXME....return function with arguments...?
+      elsif restarget['val'][PgQuery::COLUMN_REF]
+        restarget['val'][PgQuery::COLUMN_REF]['fields'].map {|f| field_parse(f) }.join('.')
       else
         nil # Probably a calculated field - can't be used as a query parameter
+      end
+    end
+
+    # Return field node.
+    def field_parse(field)
+      if field[PgQuery::STRING]
+        field[PgQuery::STRING]['str']
+      elsif field[PgQuery::INTEGER]
+        field[PgQuery::INTEGER]['ivar']
+      elsif field[PgQuery::A_STAR]
+        PgQuery::A_STAR
+      else
+        raise ArgumentError, "DataMiner: unknown key for Dataminer::Column - #{field.keys.join(', ')}"
       end
     end
 
