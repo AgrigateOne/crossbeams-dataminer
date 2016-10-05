@@ -12,8 +12,10 @@ module Dataminer
       @offset                      = nil
       @columns                     = {}
       @sql                         = nil
+      @order                       = nil
       @query_parameter_definitions = []
       @caption                     = caption
+      @modified_parse              = nil
     end
 
     def ordered_columns
@@ -39,10 +41,26 @@ module Dataminer
 
       @limit  = limit_from_sql
       @offset = offset_from_sql
+      @order  = original_select['sortClause']
       @sql    = value
 
     rescue PgQuery::ParseError => e
       raise SyntaxError, e.message
+    end
+
+    def order_by=(value)
+      if value.nil? || '' == value
+        @order = nil
+      else
+        sql      = "SELECT 1 ORDER BY #{value}"
+        pg_order = PgQuery.parse(sql)
+        @order   = pg_order.tree[0][PgQuery::SELECT_STMT]['sortClause']
+      end
+    end
+
+    def tables
+      raise RuntimeError, 'SQL string has not yet been set' if @sql.nil?
+      @parsed_sql.tables
     end
 
     def replace_where(params)
@@ -104,16 +122,29 @@ module Dataminer
       end
     end
 
+    def apply_order
+      modified_select['sortClause'] = @order
+    end
+
     def show_tree
       @modified_parse.tree[0].inspect
     end
 
     def runnable_sql
-      (@modified_parse || @parsed_sql).deparse
+      @modified_parse ||= @parsed_sql
+      apply_order
+      # NOTE: The gsub is here because of the way PgQuery deparses char varying without a specified limit:
+      #       -- CAST(x AS character varying)
+      #       -> x:varchar()
+      (@modified_parse || @parsed_sql).deparse.gsub('varchar()', 'varchar')
     end
 
     def column(name)
       @columns[name]
+    end
+
+    def parameter_definition(column)
+      @query_parameter_definitions.find {|param| param.column == column }
     end
 
     def to_hash

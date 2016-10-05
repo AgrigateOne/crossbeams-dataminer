@@ -178,11 +178,52 @@ class ReportTest < Minitest::Test
     end
   end
 
+  def test_find_param_def
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.add_parameter_definition(Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    assert_equal 'Login', @report.parameter_definition('name').caption
+    assert_nil  @report.parameter_definition('no_such_name')
+  end
+
+  def test_adding_order_by
+    @report.sql      = "SELECT id, name FROM users;"
+    @report.order_by = 'id DESC'
+    expect           = %Q{SELECT "id", "name" FROM "users" ORDER BY "id" DESC}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_replacing_order_by
+    @report.sql      = "SELECT id, name FROM users order by name;"
+    @report.order_by = 'id desc'
+    expect           = %Q{SELECT "id", "name" FROM "users" ORDER BY "id" DESC}
+    assert_equal expect, @report.runnable_sql
+  end
+
   #TODO: Change dataminer so that it can run a function query as if SQL
   #      - with columns returned and params provided...
   def test_function_not_table
     # Should take params and add between brackets - retaining any existing params.
     skip "SELECT storeopeninghours_tostring AS tmp from storeopeninghours_tostring('123');"
+  end
+
+  def test_table_method_rejected_without_sql
+    assert_raises(RuntimeError) { @report.tables }
+  end
+
+  def test_table_method_returns_tables
+    [{:sql    => 'SELECT id FROM users',
+      :tables => ['users']},
+     {:sql    => 'SELECT u.id, p.name FROM users u JOIN people p ON p.id = u.person_id',
+      :tables => ['users', 'people']}].each do |conditions|
+       @report.sql = conditions[:sql]
+       conditions[:tables].each { |table| assert_includes @report.tables, table }
+     end
   end
 
 end

@@ -2,6 +2,38 @@ require 'test_helper'
 
 class QueryParameterTest < Minitest::Test
 
+  def test_with_datatype
+    opval1 = Dataminer::OperatorValue.new('=', [123], :integer)
+    param = Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col = 123", param.to_string
+  end
+
+  def test_can_create_from_definition
+    opval = Dataminer::OperatorValue.new('=', 'FRED')
+    param = Dataminer::QueryParameter.new('col', opval)
+    p_def = Dataminer::QueryParameterDefinition.new('col')
+    n_param = Dataminer::QueryParameter.from_definition(p_def, opval)
+    assert_equal param.to_string, n_param.to_string
+  end
+
+  def test_can_create_from_definition_with_datatype
+    opval1 = Dataminer::OperatorValue.new('=', [123], :integer)
+    opval2 = Dataminer::OperatorValue.new('=', 123)
+    param = Dataminer::QueryParameter.new('col', opval1)
+    p_def = Dataminer::QueryParameterDefinition.new('col', data_type: :integer)
+    n_param = Dataminer::QueryParameter.from_definition(p_def, opval2)
+    assert_equal param.to_string, n_param.to_string
+  end
+
+  def test_can_create_from_definition_without_datatype
+    opval1 = Dataminer::OperatorValue.new('=', [123], :integer)
+    opval2 = Dataminer::OperatorValue.new('=', 123)
+    param = Dataminer::QueryParameter.new('col', opval1)
+    p_def = Dataminer::QueryParameterDefinition.new('col')
+    n_param = Dataminer::QueryParameter.from_definition(p_def, opval2)
+    refute_equal param.to_string, n_param.to_string
+  end
+
   # def test_nulls_in_ast
   #   nulls = [
   #     ['is_null', '', 0],

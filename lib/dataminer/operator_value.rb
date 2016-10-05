@@ -1,6 +1,7 @@
 module Dataminer
 
   class OperatorValue
+    attr_accessor :data_type
 
     VALID_OPERATORS = %w{= >= <= <> > < between starts_with ends_with contains in is_null not_null}
 

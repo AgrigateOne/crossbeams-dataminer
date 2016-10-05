@@ -35,6 +35,11 @@ module Dataminer
       end
     end
 
+    def self.from_definition(parameter_definition, op_val)
+      op_val.data_type = parameter_definition.data_type if op_val.data_type == :string && parameter_definition.data_type != :string
+      self.new(parameter_definition.column, op_val)
+    end
+
   end
 
 end

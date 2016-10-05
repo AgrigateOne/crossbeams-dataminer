@@ -33,6 +33,12 @@
     * Several values of the same fields - bracketed OR clause.
     * Several values of diferent fields -  bracketed OR clause.
 
+SELECT id, invoice_ref_no, customer_id, voyage_id, currency_id, invoice_date, completed, approved, cancelled FROM invoices
+--WHERE id > 3 AND NOT approved
+--WHERE id > 3 AND (cancelled OR NOT completed)
+--WHERE customer_id = 123 OR voyage_id = 221
+WHERE id IN (5,6,7,8,9,10,11,12)
+
 ## Join pruning
 
 With the use of view I recently had an uncomfortable feeling that queries can be done more simplistic, but did not know how to prove that. In Kromco's database we have views like vwcartons that join on tables which is not always necessary because the selected fields do not require it. These views are created as a "catch all" type of solution. Luckily Postgresql Optimizer/Planner can do join pruning. Unfortunately the planner/optimizer can also make mistakes.
