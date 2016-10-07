@@ -1,11 +1,11 @@
 # coding: utf-8
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'dataminer/version'
+require 'crossbeams/dataminer/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "dataminer"
-  spec.version       = Dataminer::VERSION
+  spec.name          = "crossbeams-dataminer"
+  spec.version       = Crossbeams::Dataminer::VERSION
   spec.authors       = ["James Silberbauer"]
   spec.email         = ["jamessil@telkomsa.net"]
 

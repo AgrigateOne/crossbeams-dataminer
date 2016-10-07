@@ -2,7 +2,7 @@ require 'test_helper'
 
 class ReportTest < Minitest::Test
   def setup
-    @report = Dataminer::Report.new
+    @report = Crossbeams::Dataminer::Report.new
   end
 
   def test_that_it_rejects_select_star
@@ -10,7 +10,7 @@ class ReportTest < Minitest::Test
   end
 
   def test_that_it_handles_invalid_syntax
-    assert_raises(Dataminer::SyntaxError) { @report.sql = "SELECT * FrdOM users;" }
+    assert_raises(Crossbeams::Dataminer::SyntaxError) { @report.sql = "SELECT * FrdOM users;" }
   end
 
   def test_that_it_does_not_reject_select_specific
@@ -26,7 +26,7 @@ class ReportTest < Minitest::Test
   def test_replace_where
     @report.sql = "SELECT id, name FROM users WHERE id = 21"
     params = []
-    params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'Fred'))
+    params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'Fred'))
     @report.replace_where(params)
     assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred'}, @report.runnable_sql
   end
@@ -40,8 +40,8 @@ class ReportTest < Minitest::Test
   def test_apply_params
     @report.sql = "SELECT id, name FROM users"
     params = []
-    params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'Fred'))
-    params << Dataminer::QueryParameter.new('logins', Dataminer::OperatorValue.new('=', 12, :integer))
+    params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'Fred'))
+    params << Crossbeams::Dataminer::QueryParameter.new('logins', Crossbeams::Dataminer::OperatorValue.new('=', 12, :integer))
     @report.apply_params(params)
     # assert_equal "SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12", @report.runnable_sql
     assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred' AND "logins" = 12}, @report.runnable_sql
@@ -58,7 +58,7 @@ class ReportTest < Minitest::Test
     conditions.each do |cond, expect|
       @report.sql = base_sql + ' WHERE ' + cond
       params = []
-      params << Dataminer::QueryParameter.new('name', Dataminer::OperatorValue.new('=', 'John'))
+      params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'John'))
       @report.apply_params(params)
       assert_equal expect, @report.runnable_sql
     end
@@ -76,7 +76,7 @@ class ReportTest < Minitest::Test
     conditions.each do |data_type, id, expect|
       @report.sql = base_sql
       params = []
-      params << Dataminer::QueryParameter.new('id', Dataminer::OperatorValue.new('=', id, data_type))
+      params << Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('=', id, data_type))
       @report.apply_params(params)
       assert_equal expect, @report.runnable_sql
     end
@@ -102,14 +102,14 @@ class ReportTest < Minitest::Test
 
   def test_unigue_parameter_definitions
     @report.sql = "SELECT id, name AS login FROM users;"
-    @report.add_parameter_definition(Dataminer::QueryParameterDefinition.new('name',
+    @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('name',
                                                             :caption       => 'Login',
                                                             :data_type     => :string,
                                                             :control_type  => :text,
                                                             :ui_priority   => 1,
                                                             :default_value => nil,
                                                             :list_def      => nil))
-    assert_raises(ArgumentError) { @report.add_parameter_definition(Dataminer::QueryParameterDefinition.new('name',
+    assert_raises(ArgumentError) { @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('name',
                                                             :caption       => 'Login',
                                                             :data_type     => :string,
                                                             :control_type  => :text,
@@ -122,7 +122,7 @@ class ReportTest < Minitest::Test
     @report.sql = "SELECT id, name AS login FROM users;"
     @report.columns['id'].sequence_no = 3
     @report.columns['id'].caption = 'TheId'
-    @report.add_parameter_definition( Dataminer::QueryParameterDefinition.new('name',
+    @report.add_parameter_definition( Crossbeams::Dataminer::QueryParameterDefinition.new('name',
                                                             :caption       => 'Login',
                                                             :data_type     => :string,
                                                             :control_type  => :text,
@@ -139,7 +139,7 @@ class ReportTest < Minitest::Test
     @report.sql = "SELECT id, name AS login FROM users;"
     @report.columns['id'].sequence_no = 3
     @report.columns['id'].caption = 'TheId'
-    @report.add_parameter_definition( Dataminer::QueryParameterDefinition.new('name',
+    @report.add_parameter_definition( Crossbeams::Dataminer::QueryParameterDefinition.new('name',
                                                             :caption       => 'Login',
                                                             :data_type     => :string,
                                                             :control_type  => :text,
@@ -147,7 +147,7 @@ class ReportTest < Minitest::Test
                                                             :default_value => nil,
                                                             :list_def      => nil))
     portable = @report.to_hash
-    rpt = Dataminer::Report.new
+    rpt = Crossbeams::Dataminer::Report.new
     rpt.update_from_hash(portable)
     assert rpt.caption == @report.caption
     assert rpt.columns['id'].sequence_no == 3
@@ -159,7 +159,7 @@ class ReportTest < Minitest::Test
     @report.sql = "SELECT id, name AS login FROM users;"
     @report.columns['id'].sequence_no = 3
     @report.columns['id'].caption = 'TheId'
-    @report.add_parameter_definition( Dataminer::QueryParameterDefinition.new('name',
+    @report.add_parameter_definition( Crossbeams::Dataminer::QueryParameterDefinition.new('name',
                                                             :caption       => 'Login',
                                                             :data_type     => :string,
                                                             :control_type  => :text,
@@ -168,10 +168,10 @@ class ReportTest < Minitest::Test
                                                             :list_def      => nil))
     orig = @report.to_hash
     fn = 'testyml.yml'
-    yp = Dataminer::YamlPersistor.new(fn)
+    yp = Crossbeams::Dataminer::YamlPersistor.new(fn)
     @report.save(yp)
     begin
-      rpt = Dataminer::Report.load(yp)
+      rpt = Crossbeams::Dataminer::Report.load(yp)
       assert orig == rpt.to_hash
     ensure
       File.delete(fn)
@@ -180,7 +180,7 @@ class ReportTest < Minitest::Test
 
   def test_find_param_def
     @report.sql = "SELECT id, name AS login FROM users;"
-    @report.add_parameter_definition(Dataminer::QueryParameterDefinition.new('name',
+    @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('name',
                                                             :caption       => 'Login',
                                                             :data_type     => :string,
                                                             :control_type  => :text,

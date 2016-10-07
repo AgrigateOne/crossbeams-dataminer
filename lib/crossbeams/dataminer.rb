@@ -1,15 +1,18 @@
-require "dataminer/version"
-require "dataminer/report"
-require "dataminer/column"
-require "dataminer/query_parameter"
-require "dataminer/query_parameter_definition"
-require "dataminer/operator_value"
-require "dataminer/yaml_persistor"
+require "crossbeams/dataminer/version"
+require "crossbeams/dataminer/report"
+require "crossbeams/dataminer/column"
+require "crossbeams/dataminer/query_parameter"
+require "crossbeams/dataminer/query_parameter_definition"
+require "crossbeams/dataminer/operator_value"
+require "crossbeams/dataminer/yaml_persistor"
 require "pg_query"
 require 'yaml'
 
-module Dataminer
+module Crossbeams
 
-  class SyntaxError < StandardError; end
+  module Dataminer
 
+    class SyntaxError < StandardError; end
+
+  end
 end

@@ -3,34 +3,34 @@ require 'test_helper'
 class QueryParameterTest < Minitest::Test
 
   def test_with_datatype
-    opval1 = Dataminer::OperatorValue.new('=', [123], :integer)
-    param = Dataminer::QueryParameter.new('col', opval1)
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('=', [123], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
     assert_equal "col = 123", param.to_string
   end
 
   def test_can_create_from_definition
-    opval = Dataminer::OperatorValue.new('=', 'FRED')
-    param = Dataminer::QueryParameter.new('col', opval)
-    p_def = Dataminer::QueryParameterDefinition.new('col')
-    n_param = Dataminer::QueryParameter.from_definition(p_def, opval)
+    opval = Crossbeams::Dataminer::OperatorValue.new('=', 'FRED')
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval)
+    p_def = Crossbeams::Dataminer::QueryParameterDefinition.new('col')
+    n_param = Crossbeams::Dataminer::QueryParameter.from_definition(p_def, opval)
     assert_equal param.to_string, n_param.to_string
   end
 
   def test_can_create_from_definition_with_datatype
-    opval1 = Dataminer::OperatorValue.new('=', [123], :integer)
-    opval2 = Dataminer::OperatorValue.new('=', 123)
-    param = Dataminer::QueryParameter.new('col', opval1)
-    p_def = Dataminer::QueryParameterDefinition.new('col', data_type: :integer)
-    n_param = Dataminer::QueryParameter.from_definition(p_def, opval2)
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('=', [123], :integer)
+    opval2 = Crossbeams::Dataminer::OperatorValue.new('=', 123)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    p_def = Crossbeams::Dataminer::QueryParameterDefinition.new('col', data_type: :integer)
+    n_param = Crossbeams::Dataminer::QueryParameter.from_definition(p_def, opval2)
     assert_equal param.to_string, n_param.to_string
   end
 
   def test_can_create_from_definition_without_datatype
-    opval1 = Dataminer::OperatorValue.new('=', [123], :integer)
-    opval2 = Dataminer::OperatorValue.new('=', 123)
-    param = Dataminer::QueryParameter.new('col', opval1)
-    p_def = Dataminer::QueryParameterDefinition.new('col')
-    n_param = Dataminer::QueryParameter.from_definition(p_def, opval2)
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('=', [123], :integer)
+    opval2 = Crossbeams::Dataminer::OperatorValue.new('=', 123)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    p_def = Crossbeams::Dataminer::QueryParameterDefinition.new('col')
+    n_param = Crossbeams::Dataminer::QueryParameter.from_definition(p_def, opval2)
     refute_equal param.to_string, n_param.to_string
   end
 
@@ -40,8 +40,8 @@ class QueryParameterTest < Minitest::Test
   #     ['not_null', '', 1]
   #   ]
   #   nulls.each do |op, val, expect|
-  #     opval = Dataminer::OperatorValue.new(op, val)
-  #     param = Dataminer::QueryParameter.new('col', opval)
+  #     opval = Crossbeams::Dataminer::OperatorValue.new(op, val)
+  #     param = Crossbeams::Dataminer::QueryParameter.new('col', opval)
   #     ast = param.to_ast
   #     refute_nil ast['NULLTEST']
   #     assert_equal expect, ast['NULLTEST']['nulltesttype']
@@ -49,8 +49,8 @@ class QueryParameterTest < Minitest::Test
   # end
   #
   # def test_between_operator
-  #   opval = Dataminer::OperatorValue.new('between', ['2015-08-01', '2015-08-31'])
-  #   param = Dataminer::QueryParameter.new('col', opval)
+  #   opval = Crossbeams::Dataminer::OperatorValue.new('between', ['2015-08-01', '2015-08-31'])
+  #   param = Crossbeams::Dataminer::QueryParameter.new('col', opval)
   #   ast = param.to_ast
   #   refute_nil ast['AEXPR AND']
   #   assert_equal '2015-08-01', ast['AEXPR AND']['lexpr']['AEXPR']['rexpr']['A_CONST']['val']
