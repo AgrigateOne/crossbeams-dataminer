@@ -82,7 +82,7 @@ module Dataminer
     # Namespaced name as alias.fieldname. Does not return the aliased name.
     def get_namespaced_name(restarget)
       if restarget['val'][PgQuery::FUNC_CALL]
-        restarget['val'][PgQuery::FUNC_CALL]['funcname'].join('.') #....... #FIXME....return function with arguments...?
+        nil #restarget['val'][PgQuery::FUNC_CALL]['funcname'].join('.') #....... #FIXME....return function with arguments...?
       elsif restarget['val'][PgQuery::COLUMN_REF]
         restarget['val'][PgQuery::COLUMN_REF]['fields'].map {|f| field_parse(f) }.join('.')
       else
