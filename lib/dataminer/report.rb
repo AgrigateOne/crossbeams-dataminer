@@ -44,6 +44,8 @@ module Dataminer
       @order  = original_select['sortClause']
       @sql    = value
 
+      #TODO: maybe do a quick deparse and raise exception on failure if SQL cannot be deparsed....
+
     rescue PgQuery::ParseError => e
       raise SyntaxError, e.message
     end
