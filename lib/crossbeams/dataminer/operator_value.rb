@@ -1,12 +1,11 @@
 module Crossbeams
   module Dataminer
-
     class OperatorValue
       attr_accessor :data_type
 
-      VALID_OPERATORS = %w{= >= <= <> > < between starts_with ends_with contains in is_null not_null}
+      VALID_OPERATORS = %w(= >= <= <> > < between starts_with ends_with contains in is_null not_null).freeze
 
-      def initialize(operator, values=nil, data_type=nil)
+      def initialize(operator, values = nil, data_type = nil)
         @operator  = operator
         @data_type = data_type || :string
         @values    = Array(values)
@@ -33,16 +32,17 @@ module Crossbeams
       end
 
       def check_for_valid_operator_value_combination
-        case @operator
-        when 'between'
-          raise ArgumentError, 'Must have from and to values for BETWEEN operator' if @values.count < 2 || @values.any? {|v| v.nil? || v.is_a?(String) && v.empty? }
-          raise ArgumentError, 'End of date range cannot be less than start of range for BETWEEN operator' if @values[0] > @values[1]
-        when 'in'
-          raise ArgumentError, 'Must have range of values for IN operator' if @values.empty? || @values.first.nil?
-        when 'is_null', 'not_null'
-        else
-          raise ArgumentError, 'Parameter must have a value' if @values.first.nil? #TODO Maybe need to be able to say "... WHERE xyz <> ''; " ????
-        end
+        err_msg = case @operator
+                  when 'between'
+                    check_between_values
+                  when 'in'
+                    check_in_values
+                  when 'is_null', 'not_null'
+                    nil
+                  else
+                    check_other_values
+                  end
+        raise ArgumentError, err_msg unless err_msg.nil?
       end
 
       def values_for_sql
@@ -53,30 +53,54 @@ module Crossbeams
           when false
             'f'
           else
-            case @operator
-            when 'starts_with'
-              "'#{value}%'"
-            when 'ends_with'
-              "'%#{value}'"
-            when 'contains'
-              "'%#{value}%'"
-            when 'not_null', 'is_null'
-              'NULL'
-            else
-              case @data_type
-              when :integer
-                value.to_i
-              when :number
-                value.to_f
-              else
-                "'#{value}'"
-              end
-            end
+            sql_value_from_operator(value)
           end
         end
       end
 
-    end
+      private
 
+      def check_between_values
+        if @values.count < 2 || @values.any? { |v| v.nil? || v.is_a?(String) && v.empty? }
+          'Must have from and to values for BETWEEN operator'
+        elsif @values[0] > @values[1]
+          'End of date range cannot be less than start of range for BETWEEN operator'
+        end
+      end
+
+      def check_in_values
+        'Must have range of values for IN operator' if @values.empty? || @values.first.nil?
+      end
+
+      def check_other_values
+        'Parameter must have a value' if @values.first.nil?  # TODO: Maybe need to be able to say "... WHERE xyz <> ''; " ????
+      end
+
+      def sql_value_from_operator(value)
+        case @operator
+        when 'starts_with'
+          "'#{value}%'"
+        when 'ends_with'
+          "'%#{value}'"
+        when 'contains'
+          "'%#{value}%'"
+        when 'not_null', 'is_null'
+          'NULL'
+        else
+          sql_value_from_data_type(value)
+        end
+      end
+
+      def sql_value_from_data_type(value)
+        case @data_type
+        when :integer
+          value.to_i
+        when :number
+          value.to_f
+        else
+          "'#{value}'"
+        end
+      end
+    end
   end
 end

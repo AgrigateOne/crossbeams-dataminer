@@ -31,7 +31,6 @@ class QueryParameterDefinitionTest < Minitest::Test
   def test_build_array_list
     param = Crossbeams::Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => [1,2,3])
     assert_equal [1,2,3], param.build_list.list_values
-    assert_equal [1,2,3], param.build_list {|sql| ['a','b'] }.list_values
   end
 
   def test_build_hash_list
@@ -42,6 +41,21 @@ class QueryParameterDefinitionTest < Minitest::Test
   def test_build_list_from_block
     param = Crossbeams::Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => 'SELECT code FROM table ORDER BY code')
     assert_equal [['a',1],['b',2],['c',3]], param.build_list {|sql| {'a' => 1, 'b' => 2, 'c' => 3} }.list_values
+  end
+
+  def test_build_list_from_block_instead_of_array
+    param = Crossbeams::Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => [1,2,3])
+    assert_equal ['a', 'b'], param.build_list {|sql| ['a','b'] }.list_values
+  end
+
+  def test_list_has_options
+    param = Crossbeams::Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => [1,2,3])
+    assert param.includes_list_options?
+  end
+
+  def test_list_does_not_have_options
+    param = Crossbeams::Dataminer::QueryParameterDefinition.new('col', :control_type => :list, :list_def => 'SELECT code FROM table')
+    refute param.includes_list_options?
   end
 
 end

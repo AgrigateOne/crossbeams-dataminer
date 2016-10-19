@@ -13,27 +13,27 @@ module Crossbeams
     #      "location"=>32}}
 
     class Column
-      attr_accessor :name, :sequence_no, :caption, :namespaced_name, :data_type,
-        :width, :format, :hide, :groupable, :group_by_seq,
-        :group_sum, :group_avg, :group_min, :group_max
+      attr_accessor :name,      :sequence_no, :caption,   :namespaced_name, :data_type,
+                    :width,     :format,      :hide,      :groupable,       :group_by_seq,
+                    :group_sum, :group_avg,   :group_min, :group_max
 
-      def initialize(sequence_no, parse_path, options={})
+      def initialize(sequence_no, parse_path, options = {})
         @name         = get_name(parse_path)
         @namespaced_name = get_namespaced_name(parse_path)
         @sequence_no  = sequence_no
         @parse_path   = parse_path
-        @caption      = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/) { |match| match.upcase }
+        @caption      = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
         @width        = options[:width]
-        @data_type    = options[:data_type]    || :string
+        @data_type    = options.fetch(:data_type, :string)
         @format       = options[:format]
-        @hide         = options[:hide]         || false
+        @hide         = options.fetch(:hide, false)
 
-        @groupable    = options[:groupable]    || false
+        @groupable    = options.fetch(:groupable, false)
         @group_by_seq = options[:group_by_seq]
-        @group_sum    = options[:group_sum]    || false
-        @group_avg    = options[:group_avg]    || false
-        @group_min    = options[:group_min]    || false
-        @group_max    = options[:group_max]    || false
+        @group_sum    = options.fetch(:group_sum, false)
+        @group_avg    = options.fetch(:group_avg, false)
+        @group_min    = options.fetch(:group_min, false)
+        @group_max    = options.fetch(:group_max, false)
       end
 
       def self.create_from_parse(seq, path)
@@ -44,7 +44,7 @@ module Crossbeams
         hash = {}
         [:name, :sequence_no, :caption, :namespaced_name, :data_type, :width,
          :format, :hide, :groupable, :group_by_seq,
-         :group_sum, :group_avg, :group_min, :group_max ].each {|a| hash[a] = self.send(a) }
+         :group_sum, :group_avg, :group_min, :group_max].each { |a| hash[a] = send(a) }
         hash
       end
 
@@ -70,25 +70,18 @@ module Crossbeams
       def get_name(restarget)
         if restarget['name']
           restarget['name']
+        elsif restarget['val'][PgQuery::FUNC_CALL]
+          restarget['val'][PgQuery::FUNC_CALL]['funcname'].last[PgQuery::STRING]['str']
         else
-          if restarget['val'][PgQuery::FUNC_CALL]
-            restarget['val'][PgQuery::FUNC_CALL]['funcname'].last[PgQuery::STRING]['str']
-          else
-            fld = restarget['val'][PgQuery::COLUMN_REF]['fields'].last
-            field_parse(fld)
-          end
+          fld = restarget['val'][PgQuery::COLUMN_REF]['fields'].last
+          field_parse(fld)
         end
       end
 
       # Namespaced name as alias.fieldname. Does not return the aliased name.
       def get_namespaced_name(restarget)
-        if restarget['val'][PgQuery::FUNC_CALL]
-          nil #restarget['val'][PgQuery::FUNC_CALL]['funcname'].join('.') #....... #FIXME....return function with arguments...?
-        elsif restarget['val'][PgQuery::COLUMN_REF]
-          restarget['val'][PgQuery::COLUMN_REF]['fields'].map {|f| field_parse(f) }.join('.')
-        else
-          nil # Probably a calculated field - can't be used as a query parameter
-        end
+        # Calculated fields or PgQuery::FUNC_CALL can't be used as a query parameter
+        restarget['val'][PgQuery::COLUMN_REF]['fields'].map { |f| field_parse(f) }.join('.') if restarget['val'][PgQuery::COLUMN_REF]
       end
 
       # Return field node.
@@ -103,8 +96,6 @@ module Crossbeams
           raise ArgumentError, "DataMiner: unknown key for Dataminer::Column - #{field.keys.join(', ')}"
         end
       end
-
     end
-
   end
 end
