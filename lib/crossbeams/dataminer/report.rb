@@ -1,3 +1,4 @@
+# rubocop:disable Metrics/ClassLength
 module Crossbeams
   module Dataminer
     # PgQuery consts:
@@ -82,14 +83,9 @@ module Crossbeams
         string_params = params.map(&:to_string)
 
         if modified_select['whereClause'].nil?
-          sql = 'SELECT 1 WHERE ' << string_params.join(' AND ')
-          pg_where = PgQuery.parse(sql)
-          modified_select['whereClause'] = pg_where.tree[0][PgQuery::SELECT_STMT]['whereClause']
+          apply_params_without_where_clause(string_params)
         else
-          pg_where = PgQuery.parse('SELECT 1')
-          pg_where.tree[0][PgQuery::SELECT_STMT]['whereClause'] = modified_select['whereClause']
-          pg_new_where = PgQuery.parse(pg_where.deparse + ' AND ' + string_params.join(' AND '))
-          modified_select['whereClause'] = pg_new_where.tree[0][PgQuery::SELECT_STMT]['whereClause']
+          apply_params_with_where_clause(string_params)
         end
       end
 
@@ -206,6 +202,24 @@ module Crossbeams
 
       def get_int_value(hash)
         hash[PgQuery::A_CONST]['val'][PgQuery::INTEGER]['ival']
+      end
+
+      def apply_params_without_where_clause(string_params)
+        sql = 'SELECT 1 WHERE ' << string_params.join(' AND ')
+        pg_where = PgQuery.parse(sql)
+        modified_select['whereClause'] = pg_where.tree[0][PgQuery::SELECT_STMT]['whereClause']
+      end
+
+      def apply_params_with_where_clause(string_params)
+        pg_where     = plain_sql_loaded_with_current_where
+        pg_new_where = PgQuery.parse(pg_where.deparse + ' AND ' + string_params.join(' AND '))
+        modified_select['whereClause'] = pg_new_where.tree[0][PgQuery::SELECT_STMT]['whereClause']
+      end
+
+      def plain_sql_loaded_with_current_where
+        pg_where = PgQuery.parse('SELECT 1')
+        pg_where.tree[0][PgQuery::SELECT_STMT]['whereClause'] = modified_select['whereClause']
+        pg_where
       end
     end
   end

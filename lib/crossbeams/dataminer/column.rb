@@ -18,22 +18,20 @@ module Crossbeams
                     :group_sum, :group_avg,   :group_min, :group_max
 
       def initialize(sequence_no, parse_path, options = {})
-        @name         = get_name(parse_path)
+        @name            = get_name(parse_path)
         @namespaced_name = get_namespaced_name(parse_path)
-        @sequence_no  = sequence_no
-        @parse_path   = parse_path
-        @caption      = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
-        @width        = options[:width]
-        @data_type    = options.fetch(:data_type, :string)
-        @format       = options[:format]
-        @hide         = options.fetch(:hide, false)
+        @sequence_no     = sequence_no
+        @parse_path      = parse_path
+        @caption         = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
+        @data_type       = options.fetch(:data_type, :string)
 
-        @groupable    = options.fetch(:groupable, false)
-        @group_by_seq = options[:group_by_seq]
-        @group_sum    = options.fetch(:group_sum, false)
-        @group_avg    = options.fetch(:group_avg, false)
-        @group_min    = options.fetch(:group_min, false)
-        @group_max    = options.fetch(:group_max, false)
+        [:width, :format, :group_by_seq].each do |att|
+          instance_variable_set("@#{att}", options[att])
+        end
+
+        [:hide, :groupable, :group_sum, :group_avg, :group_min, :group_max].each do |att|
+          instance_variable_set("@#{att}", options.fetch(att, false))
+        end
       end
 
       def self.create_from_parse(seq, path)
@@ -49,19 +47,10 @@ module Crossbeams
       end
 
       def modify_from_hash(column)
-        self.sequence_no     = column[:sequence_no]
-        self.namespaced_name = column[:namespaced_name]
-        self.data_type       = column[:data_type]
-        self.caption         = column[:caption]
-        self.width           = column[:width]
-        self.format          = column[:format]
-        self.hide            = column[:hide]
-        self.groupable       = column[:groupable]
-        self.group_by_seq    = column[:group_by_seq]
-        self.group_sum       = column[:group_sum]
-        self.group_avg       = column[:group_avg]
-        self.group_min       = column[:group_min]
-        self.group_max       = column[:group_max]
+        [:sequence_no, :namespaced_name, :data_type, :caption,   :width,     :format, :hide,
+         :groupable,   :group_by_seq,    :group_sum, :group_avg, :group_min, :group_max].each do |att|
+          send("#{att}=", column[att])
+        end
       end
 
       private
@@ -70,10 +59,16 @@ module Crossbeams
       def get_name(restarget)
         if restarget['name']
           restarget['name']
-        elsif restarget['val'][PgQuery::FUNC_CALL]
-          restarget['val'][PgQuery::FUNC_CALL]['funcname'].last[PgQuery::STRING]['str']
         else
-          fld = restarget['val'][PgQuery::COLUMN_REF]['fields'].last
+          get_name_from_val(restarget['val'])
+        end
+      end
+
+      def get_name_from_val(val)
+        if val[PgQuery::FUNC_CALL]
+          val[PgQuery::FUNC_CALL]['funcname'].last[PgQuery::STRING]['str']
+        else
+          fld = val[PgQuery::COLUMN_REF]['fields'].last
           field_parse(fld)
         end
       end
