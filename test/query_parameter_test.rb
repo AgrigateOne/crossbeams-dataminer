@@ -8,6 +8,18 @@ class QueryParameterTest < Minitest::Test
     assert_equal "col = 123", param.to_string
   end
 
+  def test_null
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('is_null', 123, :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col IS NULL", param.to_string
+  end
+
+  def test_not_null
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('not_null', 123, :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col IS NOT NULL", param.to_string
+  end
+
   def test_can_create_from_definition
     opval = Crossbeams::Dataminer::OperatorValue.new('=', 'FRED')
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval)
