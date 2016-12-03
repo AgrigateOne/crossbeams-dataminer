@@ -27,6 +27,8 @@ module Crossbeams
         column_names = []
 
         @parsed_sql = PgQuery.parse(value)
+        validate_is_select!
+
         original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
           col                = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
           @columns[col.name] = col
@@ -194,6 +196,10 @@ module Crossbeams
 
       def modified_select
         @modified_parse.tree[0][PgQuery::SELECT_STMT]
+      end
+
+      def validate_is_select!
+        raise ArgumentError, 'Only SELECT is allowed' if original_select.nil?
       end
 
       def make_int_value_hash(int)

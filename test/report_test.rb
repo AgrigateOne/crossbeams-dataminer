@@ -9,6 +9,18 @@ class ReportTest < Minitest::Test
     assert_raises(ArgumentError) { @report.sql = "SELECT * FROM users;" }
   end
 
+  def test_that_it_rejects_insert
+    assert_raises(ArgumentError) { @report.sql = "INSERT INTO users (id, name) VALUES(1, 'abc');" }
+  end
+
+  def test_that_it_rejects_update
+    assert_raises(ArgumentError) { @report.sql = "UPDATE users SET name = 'abc';" }
+  end
+
+  def test_that_it_rejects_delete
+    assert_raises(ArgumentError) { @report.sql = "DELETE FROM users;" }
+  end
+
   def test_that_it_handles_invalid_syntax
     assert_raises(Crossbeams::Dataminer::SyntaxError) { @report.sql = "SELECT * FrdOM users;" }
   end
