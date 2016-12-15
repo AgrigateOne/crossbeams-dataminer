@@ -94,6 +94,16 @@ class ReportTest < Minitest::Test
     end
   end
 
+  def test_cast_char_without_limit_override
+    @report.sql = "SELECT CAST(id AS character varying) AS char_id FROM users"
+    assert_equal %Q{SELECT "id"::varchar AS char_id FROM "users"}, @report.runnable_sql
+  end
+
+  def test_cast_num_without_limit_override
+    @report.sql = "SELECT CAST(id AS numeric) AS num_id FROM users"
+    assert_equal %Q{SELECT "id"::numeric AS num_id FROM "users"}, @report.runnable_sql
+  end
+
   def test_find_column
     @report.sql = "SELECT id, name AS login FROM users;"
     assert_equal 'id', @report.column('id').name

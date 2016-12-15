@@ -135,7 +135,7 @@ module Crossbeams
         # NOTE: The gsub is here because of the way PgQuery deparses char varying without a specified limit:
         #       -- CAST(x AS character varying)
         #       -> x:varchar()
-        (@modified_parse || @parsed_sql).deparse.gsub('varchar()', 'varchar')
+        (@modified_parse || @parsed_sql).deparse.gsub('varchar()', 'varchar').gsub('numeric()', 'numeric')
       end
 
       def column(name)
