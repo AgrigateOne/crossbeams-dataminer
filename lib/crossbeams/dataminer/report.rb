@@ -132,10 +132,7 @@ module Crossbeams
       def runnable_sql
         @modified_parse ||= @parsed_sql
         apply_order
-        # NOTE: The gsub is here because of the way PgQuery deparses char varying without a specified limit:
-        #       -- CAST(x AS character varying)
-        #       -> x:varchar()
-        (@modified_parse || @parsed_sql).deparse.gsub('varchar()', 'varchar').gsub('numeric()', 'numeric')
+        (@modified_parse || @parsed_sql).deparse
       end
 
       def column(name)
