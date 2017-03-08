@@ -49,9 +49,9 @@ module Crossbeams
         @values.map do |value|
           case value
           when true
-            't'
+            "'t'"
           when false
-            'f'
+            "'f'"
           else
             sql_value_from_operator(value)
           end

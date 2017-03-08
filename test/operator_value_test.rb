@@ -32,7 +32,7 @@ class OperatorValueTest < Minitest::Test
   end
 
   def test_values_for_sql
-    {true => ['t'], false => ['f']}.each do |in_val, out_val|
+    {true => ["'t'"], false => ["'f'"]}.each do |in_val, out_val|
       opval = Crossbeams::Dataminer::OperatorValue.new('=', in_val)
       val = opval.values_for_sql
       assert_equal out_val, val
