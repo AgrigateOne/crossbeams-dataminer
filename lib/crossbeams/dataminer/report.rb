@@ -24,22 +24,14 @@ module Crossbeams
 
       def sql=(value)
         @columns.clear
-        column_names = []
 
         @parsed_sql = PgQuery.parse(value)
+
         validate_is_select!
 
-        original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
-          col                = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
-          @columns[col.name] = col
-          column_names << col.name
-        end
+        create_and_validate_columns
 
-        if @columns.keys.any? { |a| a.include?(PgQuery::A_STAR) } # one of the columns is "*"...
-          raise ArgumentError, 'Cannot have * as a column selector'
-        end
-
-        raise ArgumentError, 'SQL has duplicate column names' unless column_names.length == column_names.uniq.length
+        validate_select_star!
 
         @limit  = limit_from_sql
         @offset = offset_from_sql
@@ -197,6 +189,23 @@ module Crossbeams
 
       def validate_is_select!
         raise ArgumentError, 'Only SELECT is allowed' if original_select.nil?
+      end
+
+      def create_and_validate_columns
+        column_names = []
+
+        original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
+          col                = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
+          @columns[col.name] = col
+          column_names << col.name
+        end
+
+        raise ArgumentError, 'SQL has duplicate column names' unless column_names.length == column_names.uniq.length
+      end
+
+      def validate_select_star!
+        # one of the columns is "*"...
+        raise ArgumentError, 'Cannot have * as a column selector' if @columns.keys.any? { |a| a.include?(PgQuery::A_STAR) }
       end
 
       def make_int_value_hash(int)

@@ -19,7 +19,8 @@ module Crossbeams
         values   = @op_val.values_for_sql
 
         if values.first =~ NULL_TEST
-          "#{@qualified_column_name} #{NOT_NULL_TEST[!!(operator =~ NOT_TEST)]}"
+          op_type = operator =~ NOT_TEST ? true : false
+          "#{@qualified_column_name} #{NOT_NULL_TEST[op_type]}"
         else
           case operator
           when BETWEEN_TEST
