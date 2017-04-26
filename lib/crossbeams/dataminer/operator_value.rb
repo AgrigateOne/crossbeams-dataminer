@@ -3,7 +3,7 @@ module Crossbeams
     class OperatorValue
       attr_accessor :data_type
 
-      VALID_OPERATORS = %w(= >= <= <> > < between starts_with ends_with contains in is_null not_null).freeze
+      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in is_null not_null].freeze
 
       def initialize(operator, values = nil, data_type = nil)
         @operator  = operator

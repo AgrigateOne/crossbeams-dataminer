@@ -37,9 +37,7 @@ module Crossbeams
         @offset = offset_from_sql
         @order  = original_select['sortClause']
         @sql    = value
-
         # TODO: maybe do a quick deparse and raise exception on failure if SQL cannot be deparsed....
-
       rescue PgQuery::ParseError => e
         raise SyntaxError, e.message
       end
@@ -137,7 +135,7 @@ module Crossbeams
 
       def to_hash
         hash = {}
-        [:caption, :sql, :limit, :offset].each { |k| hash[k] = send(k) }
+        %i[caption sql limit offset].each { |k| hash[k] = send(k) }
         hash[:columns] = {}
         columns.each { |name, col| hash[:columns][name] = col.to_hash }
         hash[:query_parameter_definitions] = query_parameter_definitions.map(&:to_hash)

@@ -25,11 +25,11 @@ module Crossbeams
         @caption         = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
         @data_type       = options.fetch(:data_type, :string)
 
-        [:width, :format, :group_by_seq].each do |att|
+        %i[width format group_by_seq].each do |att|
           instance_variable_set("@#{att}", options[att])
         end
 
-        [:hide, :groupable, :group_sum, :group_avg, :group_min, :group_max].each do |att|
+        %i[hide groupable group_sum group_avg group_min group_max].each do |att|
           instance_variable_set("@#{att}", options.fetch(att, false))
         end
       end
@@ -40,15 +40,15 @@ module Crossbeams
 
       def to_hash
         hash = {}
-        [:name, :sequence_no, :caption, :namespaced_name, :data_type, :width,
-         :format, :hide, :groupable, :group_by_seq,
-         :group_sum, :group_avg, :group_min, :group_max].each { |a| hash[a] = send(a) }
+        %i[name sequence_no caption namespaced_name data_type width
+           format hide groupable group_by_seq
+           group_sum group_avg group_min group_max].each { |a| hash[a] = send(a) }
         hash
       end
 
       def modify_from_hash(column)
-        [:sequence_no, :namespaced_name, :data_type, :caption,   :width,     :format, :hide,
-         :groupable,   :group_by_seq,    :group_sum, :group_avg, :group_min, :group_max].each do |att|
+        %i[sequence_no namespaced_name data_type caption width format hide
+           groupable group_by_seq group_sum group_avg group_min group_max].each do |att|
           send("#{att}=", column[att])
         end
       end
