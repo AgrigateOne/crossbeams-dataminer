@@ -18,8 +18,8 @@ module Crossbeams
         operator = @op_val.operator_for_sql
         values   = @op_val.values_for_sql
 
-        if values.first =~ NULL_TEST
-          op_type = operator =~ NOT_TEST ? true : false
+        if values.first.to_s.match?(NULL_TEST)
+          op_type = operator.match?(NOT_TEST) ? true : false
           "#{@qualified_column_name} #{NOT_NULL_TEST[op_type]}"
         else
           case operator
