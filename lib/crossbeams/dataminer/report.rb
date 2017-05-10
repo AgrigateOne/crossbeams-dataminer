@@ -1,12 +1,21 @@
 # rubocop:disable Metrics/ClassLength
 module Crossbeams
   module Dataminer
+    # Dataminer Report definition.
+    #
+    # Create a report instance, set its SQL, define parameters, apply parameter values
+    # and get the SQL to be run.
+    #
     # PgQuery consts:
     # https://github.com/lfittl/pg_query/blob/master/lib/pg_query/node_types.rb
     class Report
-      attr_accessor :sql, :columns, :limit, :offset, :caption # name?...
+      attr_accessor :sql, :columns, :limit, :offset, :caption
       attr_reader :query_parameter_definitions
 
+      # Create a report.
+      #
+      # @param caption [String, nil] the caption for the report.
+      # @return self.
       def initialize(caption = nil)
         @limit                       = nil
         @offset                      = nil
@@ -18,10 +27,18 @@ module Crossbeams
         @modified_parse              = nil
       end
 
+      # Get the report's columns in sequence number order.
+      #
+      # @return [Array<Column>] the columns ordered by sequence number.
       def ordered_columns
         @columns.map { |_, v| v }.sort_by(&:sequence_no)
       end
 
+      # Set the SQL of the report.
+      # This will validate the SQL and build the columns list.
+      #
+      # @param value [String] the SQL query.
+      # @return void.
       def sql=(value)
         @columns.clear
 
@@ -42,6 +59,10 @@ module Crossbeams
         raise SyntaxError, e.message
       end
 
+      # Replace the ORDER BY clause.
+      #
+      # @param value [String] the ORDER BY clause.
+      # @return void.
       def order_by=(value)
         if value.nil? || '' == value
           @order = nil
@@ -52,20 +73,34 @@ module Crossbeams
         end
       end
 
+      # The list of tables referenced in the query.
+      #
+      # @return [Array<String>] the list of tables.
       def tables
         raise 'SQL string has not yet been set' if @sql.nil?
         @parsed_sql.tables
       end
 
+      # Replace the where clause with a new one.
+      #
+      # @param params {Array<QueryParameter>] an array of QueryParameters.
+      # @return void.
       def replace_where(params)
         @modified_parse = @parsed_sql.dup
         modified_select['whereClause'] = nil
         apply_params(params, prepared_tree: true)
       end
 
-      # TODO: params could be a param set.. should be wrapped in brackets...
-      def apply_params(params, options = {})
-        @modified_parse = @parsed_sql.dup unless options[:prepared_tree]
+      # Take a list of QueryParameter and apply the values to the query's WHERE clause.
+      # Apply the +limit+ and +offset+ attributes to the query.
+      #
+      # @param params [Array<QueryParameter>] the query parameters to apply.
+      # @param [Hash] opts the options for applying parameters.
+      # @option opts [Boolean] :prepared_tree Has the parsetree been prepared - true or false.
+      # @return void.
+      def apply_params(params, opts = {})
+        # TODO: params could be a param set.. should be wrapped in brackets...
+        @modified_parse = @parsed_sql.dup unless opts[:prepared_tree]
 
         apply_limit
         apply_offset
@@ -81,6 +116,9 @@ module Crossbeams
         end
       end
 
+      # Extract the LIMiT value from the SQL.
+      #
+      # @return limit [Integer]
       def limit_from_sql
         limit_clause = original_select['limitCount']
         return nil if limit_clause.nil?
@@ -88,6 +126,9 @@ module Crossbeams
         get_int_value(limit_clause)
       end
 
+      # Take the limit attribute and apply it to the SQL.
+      #
+      # @return void.
       def apply_limit
         modified_select['limitCount'] = if @limit.nil? || @limit.zero?
                                           nil
@@ -96,6 +137,9 @@ module Crossbeams
                                         end
       end
 
+      # Extract the OFFSET value from the SQL.
+      #
+      # @return offset [Integer]
       def offset_from_sql
         offset_clause = original_select['limitOffset']
         return nil if offset_clause.nil?
@@ -103,6 +147,9 @@ module Crossbeams
         get_int_value(offset_clause)
       end
 
+      # Take the offset attribute and apply it to the SQL.
+      #
+      # @return void.
       def apply_offset
         modified_select['limitOffset'] = if @offset.nil? || @offset.zero?
                                            nil
@@ -111,28 +158,47 @@ module Crossbeams
                                          end
       end
 
+      # Take the order attribute and apply it to the SQL's ORDER BY clause.
+      #
+      # @return void.
       def apply_order
         modified_select['sortClause'] = @order
       end
 
+      # Display the PgQuery's parsetree.
+      #
+      # @return [String] the parsetree.
       def show_tree
         @modified_parse.tree[0].inspect
       end
 
+      # The SQL with parameters applied so that it can be run against a database.
+      #
+      # @return [String] the SQL to run.
       def runnable_sql
         @modified_parse ||= @parsed_sql
         apply_order
         (@modified_parse || @parsed_sql).deparse
       end
 
+      # Get a column by its +name+.
+      #
+      # @return [Column] the column with matching name.
       def column(name)
         @columns[name]
       end
 
+      # Find a QueryParameterDefinition for a specified Column.
+      #
+      # @param column [Column] the column.
+      # @return [QueryParameterDefinition] the parameter definition.
       def parameter_definition(column)
         @query_parameter_definitions.find { |param| param.column == column }
       end
 
+      # Get a persistable Hash representation of the report.
+      #
+      # @return [Hash] the definition of the report and parameters.
       def to_hash
         hash = {}
         %i[caption sql limit offset].each { |k| hash[k] = send(k) }
@@ -142,6 +208,10 @@ module Crossbeams
         hash
       end
 
+      # Apply modifications in a Hash to the report.
+      #
+      # @param hash [Hash] the modified hash.
+      # @return self the report.
       def update_from_hash(hash)
         @caption = hash[:caption]
         self.sql = hash[:sql]
@@ -157,19 +227,35 @@ module Crossbeams
         self
       end
 
+      # Create a Report from a Hash.
+      #
+      # @param hash [Hash] the report as a hash.
+      # @return self the new report.
       def self.create_from_hash(hash)
         report = new
         report.update_from_hash(hash)
       end
 
+      # Pass a hash representation of the report to a Persistor to save it.
+      #
+      # @param persistor [YamlPersistor] the persistor.
+      # @return void.
       def save(persistor)
         persistor.save(to_hash)
       end
 
+      # Create a report from a Persistor.
+      #
+      # @param persistor [YamlPersistor] the persistor.
+      # @return [Report] a report.
       def self.load(persistor)
         create_from_hash(persistor.to_hash)
       end
 
+      # Add a QueryParameterDefinition to the report.
+      #
+      # @param param_def [QueryParameterDefinition] the parameter definition.
+      # @return void.
       def add_parameter_definition(param_def)
         raise ArgumentError, 'Duplicate parameter definition' if query_parameter_definitions.any? { |other| param_def == other }
         query_parameter_definitions << param_def
@@ -199,6 +285,7 @@ module Crossbeams
       #
       # @param new_name [String] the alias for the new array column.
       # @param column_keys [Array<String>] the columns to convert into an array column.
+      # @return void.
       def convert_columns_to_array(new_name, column_keys)
         # TODO: implement
       end
