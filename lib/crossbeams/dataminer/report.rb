@@ -175,7 +175,39 @@ module Crossbeams
         query_parameter_definitions << param_def
       end
 
+      # Remove columns from the query's SELECT, GROUP BY and ORDER BY clauses.
+      # @param column_keys [String, Array<String>] the name(s) of the column(s) to remove.
+      # @return void.
+      def remove_columns(column_keys)
+        columns = Array(column_keys)
+        columns.each do |column_key|
+          remove_column(@columns[column_key])
+        end
+        # need to get namespaced name first.
+        # Then remove from pg q's select, grp & order...
+        # Remove columns from select
+        # Remove from GROUP
+        # Remove from ORDER
+      end
+
+      # Convert a list of columns into an Array with a new name.
+      #
+      # @example
+      #   SQL: SELECT id, name, surname, email, address FROM users;
+      #   convert_columns_to_array('user_detail', ['name', 'surname', 'email'])
+      #   SQL: SELECT id, ARRAY[name, surname, email] AS user_detail, address FROM users;
+      #
+      # @param new_name [String] the alias for the new array column.
+      # @param column_keys [Array<String>] the columns to convert into an array column.
+      def convert_columns_to_array(new_name, column_keys)
+        # TODO: implement
+      end
+
       private
+
+      def remove_column(column)
+        # TODO: implement
+      end
 
       def original_select
         @parsed_sql.tree[0][PgQuery::SELECT_STMT]

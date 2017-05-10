@@ -248,4 +248,52 @@ class ReportTest < Minitest::Test
      end
   end
 
+  def test_remove_column
+    @report.sql      = "SELECT id, name, email FROM users;"
+    @report.remove_columns('email')
+    expect           = %Q{SELECT "id", "name" FROM "users"}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_remove_columns
+    @report.sql      = "SELECT id, name, email FROM users;"
+    @report.remove_columns(['email', 'id'])
+    expect           = %Q{SELECT "name" FROM "users"}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_remove_grouped_column
+    @report.sql      = "SELECT id, name, email, COUNT(xx) FROM users GROUP BY id, name, email;"
+    @report.remove_columns('email')
+    expect           = %Q{SELECT "id", "name", COUNT("xx") FROM "users" GROUP BY "id", "name"}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_remove_grouped_columns
+    @report.sql      = "SELECT id, name, email, COUNT(xx) FROM users GROUP BY id, name, email;"
+    @report.remove_columns(['email', 'id'])
+    expect           = %Q{SELECT "name", COUNT("xx") FROM "users" GROUP BY "name"}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_remove_ordered_column
+    @report.sql      = "SELECT id, name, email FROM users ORDER BY id, name, email;"
+    @report.remove_columns('email')
+    expect           = %Q{SELECT "id", "name" FROM "users" ORDER BY "id", "name"}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_remove_ordered_columns
+    @report.sql      = "SELECT id, name, email FROM users ORDER BY id, name, email;"
+    @report.remove_columns(['email', 'id'])
+    expect           = %Q{SELECT "name" FROM "users" ORDER BY "name"}
+    assert_equal expect, @report.runnable_sql
+  end
+
+  def test_convert_columns_to_array
+    @report.sql      = "SELECT id, name, email FROM users;"
+    @report.convert_columns_to_array('combin', ['id', 'name'])
+    expect           = %Q{SELECT ARRAY["id", "name"] AS combin, "email" FROM "users"}
+    assert_equal expect, @report.runnable_sql
+  end
 end
