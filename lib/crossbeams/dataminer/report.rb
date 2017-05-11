@@ -266,14 +266,12 @@ module Crossbeams
       # @return void.
       def remove_columns(column_keys)
         columns = Array(column_keys)
+
         columns.each do |column_key|
           remove_column(@columns[column_key])
+          remove_sorted_column(@columns[column_key])
+          remove_grouped_column(@columns[column_key])
         end
-        # need to get namespaced name first.
-        # Then remove from pg q's select, grp & order...
-        # Remove columns from select
-        # Remove from GROUP
-        # Remove from ORDER
       end
 
       # Convert a list of columns into an Array with a new name.
@@ -287,13 +285,40 @@ module Crossbeams
       # @param column_keys [Array<String>] the columns to convert into an array column.
       # @return void.
       def convert_columns_to_array(new_name, column_keys)
-        # TODO: implement
+        columns = column_keys.map { |k| @columns[k] }
+        array_select = "ARRAY[\"#{columns.map(&:namespaced_name).join('", "')}\"] AS #{new_name}"
+
+        columns.each do |column|
+          remove_column(column)
+        end
+
+        ar_tree = array_tree_for(new_name, array_select)
+        original_select[PgQuery::TARGET_LIST_FIELD].unshift(ar_tree)
       end
 
       private
 
+      def array_tree_for(new_name, array_select)
+        pg_temp = PgQuery.parse("SELECT #{array_select} FROM temp")
+        pg_temp.tree[0][PgQuery::SELECT_STMT][PgQuery::TARGET_LIST_FIELD].select { |a| a['ResTarget']['name'] == new_name }.first
+      end
+
       def remove_column(column)
-        # TODO: implement
+        original_select[PgQuery::TARGET_LIST_FIELD].reject! do |col|
+          col[PgQuery::RES_TARGET] == column.parse_path
+        end
+      end
+
+      def remove_sorted_column(column)
+        (original_select['sortClause'] || []).reject! do |order|
+          order['SortBy']['node']['ColumnRef']['fields'].first['String']['str'] == column.namespaced_name
+        end
+      end
+
+      def remove_grouped_column(column)
+        (original_select['groupClause'] || []).reject! do |group|
+          group['ColumnRef']['fields'].first['String']['str'] == column.namespaced_name
+        end
       end
 
       def original_select

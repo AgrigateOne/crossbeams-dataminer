@@ -1,3 +1,16 @@
+<!-- Tocer[start]: Auto-generated, don't remove. -->
+
+# Table of Contents
+
+- [Dataminer](#dataminer)
+  - [Installation](#installation)
+  - [Usage](#usage)
+  - [Development](#development)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+<!-- Tocer[finish]: Auto-generated, don't remove. -->
+
 # Dataminer
 
 Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/dataminer`. To experiment with that code, run `bin/console` for an interactive prompt.

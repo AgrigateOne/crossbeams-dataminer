@@ -15,7 +15,7 @@ module Crossbeams
     class Column
       attr_accessor :name,      :sequence_no, :caption,   :namespaced_name, :data_type,
                     :width,     :format,      :hide,      :groupable,       :group_by_seq,
-                    :group_sum, :group_avg,   :group_min, :group_max
+                    :group_sum, :group_avg,   :group_min, :group_max,       :parse_path
 
       def initialize(sequence_no, parse_path, options = {})
         @name            = get_name(parse_path)

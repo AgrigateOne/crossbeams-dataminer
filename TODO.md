@@ -1,3 +1,14 @@
+<!-- Tocer[start]: Auto-generated, don't remove. -->
+
+# Table of Contents
+
+- [TODO](#todo)
+  - [Aggregate queries](#aggregate-queries)
+  - [Where clause](#where-clause)
+  - [Join pruning](#join-pruning)
+
+<!-- Tocer[finish]: Auto-generated, don't remove. -->
+
 # TODO
 
 ## Aggregate queries
