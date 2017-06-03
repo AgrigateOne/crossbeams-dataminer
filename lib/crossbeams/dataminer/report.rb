@@ -42,7 +42,8 @@ module Crossbeams
       def sql=(value)
         @columns.clear
 
-        @parsed_sql = PgQuery.parse(value)
+        @parsed_sql     = PgQuery.parse(value)
+        @modified_parse = nil
 
         validate_is_select!
 
@@ -262,6 +263,7 @@ module Crossbeams
       end
 
       # Remove columns from the query's SELECT, GROUP BY and ORDER BY clauses.
+      #
       # @param column_keys [String, Array<String>] the name(s) of the column(s) to remove.
       # @return void.
       def remove_columns(column_keys)
