@@ -94,6 +94,23 @@ class ReportTest < Minitest::Test
     end
   end
 
+  def test_change_sql_with_parameters_and_column_attributes
+    start_sql = %Q{SELECT "id", "name" FROM "users"}
+    end_sql   = %Q{SELECT "id", "name", "email" FROM "users"}
+    @report.sql = start_sql
+    @report.columns['name'].hide = true
+    @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('name',
+                                                            :caption       => 'Login',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    @report.sql = end_sql
+    assert_equal 1, @report.query_parameter_definitions.length
+    assert @report.columns['name'].hide
+  end
+
   def test_cast_char_without_limit_override
     @report.sql = "SELECT CAST(id AS character varying) AS char_id FROM users"
     assert_equal %Q{SELECT "id"::varchar AS char_id FROM "users"}, @report.runnable_sql

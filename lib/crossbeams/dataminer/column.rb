@@ -34,10 +34,16 @@ module Crossbeams
         end
       end
 
+      # Create a Column from a PGQuery column definition.
+      #
+      # @return Column.
       def self.create_from_parse(seq, path)
         new(seq, path)
       end
 
+      # Column as a Hash.
+      #
+      # @return Hash.
       def to_hash
         hash = {}
         %i[name sequence_no caption namespaced_name data_type width
@@ -46,11 +52,28 @@ module Crossbeams
         hash
       end
 
+      # Update selected attributes from a Hash.
+      #
+      # @param column [Hash] the key/value hash using symbol keys.
+      # @return void.
       def modify_from_hash(column)
         %i[sequence_no namespaced_name data_type caption width format hide
            groupable group_by_seq group_sum group_avg group_min group_max].each do |att|
           send("#{att}=", column[att])
         end
+      end
+
+      # Update selected attributes from another column.
+      #
+      # @param previous_column [Column] the Column with the desired attributes.
+      # @return self.
+      def update_from(previous_column)
+        return self if previous_column.nil?
+        %i[data_type caption width format hide
+           groupable group_by_seq group_sum group_avg group_min group_max].each do |att|
+          send("#{att}=", previous_column.send(att))
+        end
+        self
       end
 
       private
