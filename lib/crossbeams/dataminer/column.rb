@@ -36,6 +36,8 @@ module Crossbeams
 
       # Create a Column from a PGQuery column definition.
       #
+      # @param seq [Integer] The sequence
+      # @param path [String] The path
       # @return Column.
       def self.create_from_parse(seq, path)
         new(seq, path)
