@@ -1,4 +1,3 @@
-# rubocop:disable Metrics/ClassLength
 module Crossbeams
   module Dataminer
     # Dataminer Report definition.
@@ -8,9 +7,9 @@ module Crossbeams
     #
     # PgQuery consts:
     # https://github.com/lfittl/pg_query/blob/master/lib/pg_query/node_types.rb
-    class Report
-      attr_accessor :sql, :columns, :limit, :offset, :caption
-      attr_reader :query_parameter_definitions
+    class Report # rubocop:disable Metrics/ClassLength
+      attr_accessor :columns, :limit, :offset, :caption
+      attr_reader :sql, :query_parameter_definitions
 
       # Create a report.
       #
@@ -66,12 +65,12 @@ module Crossbeams
       # @param value [String] the ORDER BY clause.
       # @return void.
       def order_by=(value)
-        if value.nil? || '' == value
+        if value.nil? || value == ''
           @order = nil
         else
           sql      = "SELECT 1 ORDER BY #{value}"
           pg_order = PgQuery.parse(sql)
-          @order   = pg_order.tree[0][PgQuery::SELECT_STMT]['sortClause']
+          @order   = tree_select_stmt(pg_order.tree)['sortClause']
         end
       end
 
@@ -301,9 +300,13 @@ module Crossbeams
 
       private
 
+      def tree_select_stmt(tree)
+        tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT]
+      end
+
       def array_tree_for(new_name, array_select)
         pg_temp = PgQuery.parse("SELECT #{array_select} FROM temp")
-        pg_temp.tree[0][PgQuery::SELECT_STMT][PgQuery::TARGET_LIST_FIELD].select { |a| a['ResTarget']['name'] == new_name }.first
+        tree_select_stmt(pg_temp.tree)[PgQuery::TARGET_LIST_FIELD].select { |a| a['ResTarget']['name'] == new_name }.first
       end
 
       def remove_column(column)
@@ -325,11 +328,11 @@ module Crossbeams
       end
 
       def original_select
-        @parsed_sql.tree[0][PgQuery::SELECT_STMT]
+        tree_select_stmt(@parsed_sql.tree)
       end
 
       def modified_select
-        @modified_parse.tree[0][PgQuery::SELECT_STMT]
+        tree_select_stmt(@modified_parse.tree)
       end
 
       def validate_is_select!
@@ -337,16 +340,12 @@ module Crossbeams
       end
 
       def create_and_validate_columns
-        column_names = []
-
         original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
-          col                = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
-          previous_column    = @current_columns[col.name]
+          col = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
+          raise ArgumentError, 'SQL has duplicate column names' unless @columns[col.name].nil?
+          previous_column = @current_columns[col.name]
           @columns[col.name] = col.update_from(previous_column)
-          column_names << col.name
         end
-
-        raise ArgumentError, 'SQL has duplicate column names' unless column_names.length == column_names.uniq.length
       end
 
       def validate_select_star!
@@ -365,18 +364,18 @@ module Crossbeams
       def apply_params_without_where_clause(string_params)
         sql = 'SELECT 1 WHERE ' << string_params.join(' AND ')
         pg_where = PgQuery.parse(sql)
-        modified_select['whereClause'] = pg_where.tree[0][PgQuery::SELECT_STMT]['whereClause']
+        modified_select['whereClause'] = tree_select_stmt(pg_where.tree)['whereClause']
       end
 
       def apply_params_with_where_clause(string_params)
         pg_where     = plain_sql_loaded_with_current_where
         pg_new_where = PgQuery.parse(pg_where.deparse + ' AND ' + string_params.join(' AND '))
-        modified_select['whereClause'] = pg_new_where.tree[0][PgQuery::SELECT_STMT]['whereClause']
+        modified_select['whereClause'] = tree_select_stmt(pg_new_where.tree)['whereClause']
       end
 
       def plain_sql_loaded_with_current_where
         pg_where = PgQuery.parse('SELECT 1')
-        pg_where.tree[0][PgQuery::SELECT_STMT]['whereClause'] = modified_select['whereClause']
+        tree_select_stmt(pg_where.tree)['whereClause'] = modified_select['whereClause']
         pg_where
       end
     end
