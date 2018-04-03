@@ -192,6 +192,18 @@ class ReportTest < Minitest::Test
     assert rpt.columns['id'].sequence_no == 3
     assert rpt.columns['id'].caption     == 'TheId'
     assert rpt.query_parameter_definitions.length == @report.query_parameter_definitions.length
+    assert_kind_of Hash, rpt.external_settings
+  end
+
+  def test_external_settings
+    @report.sql = "SELECT id, name AS login FROM users;"
+    @report.external_settings[:tester] = 'tester'
+    portable = @report.to_hash
+    assert_equal 'tester', portable[:external_settings][:tester]
+
+    portable[:external_settings][:tester] = 'changed'
+    @report.update_from_hash(portable)
+    assert_equal 'changed', @report.external_settings[:tester]
   end
 
   def test_yaml_persistor

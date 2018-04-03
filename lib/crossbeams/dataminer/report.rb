@@ -9,7 +9,7 @@ module Crossbeams
     # https://github.com/lfittl/pg_query/blob/master/lib/pg_query/node_types.rb
     class Report # rubocop:disable Metrics/ClassLength
       attr_accessor :columns, :limit, :offset, :caption
-      attr_reader :sql, :query_parameter_definitions
+      attr_reader :sql, :query_parameter_definitions, :external_settings
 
       # Create a report.
       #
@@ -24,6 +24,7 @@ module Crossbeams
         @query_parameter_definitions = []
         @caption                     = caption
         @modified_parse              = nil
+        @external_settings           = {}
       end
 
       # Get the report's columns in sequence number order.
@@ -202,7 +203,7 @@ module Crossbeams
       # @return [Hash] the definition of the report and parameters.
       def to_hash
         hash = {}
-        %i[caption sql limit offset].each { |k| hash[k] = send(k) }
+        %i[caption sql limit offset external_settings].each { |k| hash[k] = send(k) }
         hash[:columns] = {}
         columns.each { |name, col| hash[:columns][name] = col.to_hash }
         hash[:query_parameter_definitions] = query_parameter_definitions.map(&:to_hash)
@@ -219,6 +220,9 @@ module Crossbeams
 
         @limit   = hash[:limit]
         @offset  = hash[:offset]
+        ext_set  = hash.fetch(:external_settings, {})
+        raise 'External settings must be a hash' unless ext_set.is_a?(Hash)
+        @external_settings = ext_set
 
         hash[:columns].each { |name, column| @columns[name].modify_from_hash(column) }
 
