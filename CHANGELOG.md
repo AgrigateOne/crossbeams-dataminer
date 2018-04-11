@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+Upgrade PgQuery gem to 1.0.2.
 ### Fixed
 
 ## [0.1.3] - 2018-04-03
