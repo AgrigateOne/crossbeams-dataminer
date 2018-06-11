@@ -49,6 +49,13 @@ class ReportTest < Minitest::Test
     assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql
   end
 
+  def test_runnable_for_mssql
+    @report.sql = "SELECT id, name FROM users"
+    @report.apply_params([])
+    assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql_delimited
+    assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql_delimited(:mssql)
+  end
+
   def test_apply_params
     @report.sql = "SELECT id, name FROM users"
     params = []

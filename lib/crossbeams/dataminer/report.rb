@@ -180,7 +180,16 @@ module Crossbeams
       def runnable_sql
         @modified_parse ||= @parsed_sql
         apply_order
-        (@modified_parse || @parsed_sql).deparse
+        (@modified_parse || @parsed_sql).deparse # nil, :sql || nil, mssql
+      end
+
+      # The SQL with parameters applied so that it can be run against a database.
+      # Changes the delimiters for MS SQL Server to avoid problems with double-quoted identifiers.
+      #
+      # @param delimiters [Symbol] the type of delimiters to use. Can be :sql (default) or :mssql.
+      # @return [String] the SQL to run.
+      def runnable_sql_delimited(delimiters = :sql)
+        delimiters == :mssql ? runnable_sql.tr('"', '') : runnable_sql
       end
 
       # Get a column by its +name+.
