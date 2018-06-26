@@ -7,6 +7,9 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- "runnable_sql_delimited" method wraps "runable_sql" method. For :mssql will strip out double quote identifiers.
+- New report method "tables_or_aliases". Returns all tables used in the query, but returns an alias when that is used instead of a table.
+  Note that this will not return the table name if a table is used twice - once with an alias and once witout.
 ### Changed
 ### Fixed
 

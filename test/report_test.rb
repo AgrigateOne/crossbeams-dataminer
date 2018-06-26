@@ -274,6 +274,10 @@ class ReportTest < Minitest::Test
     assert_raises(RuntimeError) { @report.tables }
   end
 
+  def test_table_alias_method_rejected_without_sql
+    assert_raises(RuntimeError) { @report.tables_or_aliases }
+  end
+
   def test_table_method_returns_tables
     [{:sql    => 'SELECT id FROM users',
       :tables => ['users']},
@@ -281,6 +285,18 @@ class ReportTest < Minitest::Test
       :tables => ['users', 'people']}].each do |conditions|
        @report.sql = conditions[:sql]
        conditions[:tables].each { |table| assert_includes @report.tables, table }
+     end
+  end
+
+  def test_table_alias_method_returns_tables_or_aliases
+    [{:sql    => 'SELECT id FROM users',
+      :tables => ['users']},
+     {:sql    => 'SELECT users.id, p.name FROM users JOIN people p ON p.id = users.person_id',
+      :tables => ['users', 'p']},
+     {:sql    => 'SELECT u.id, p.name FROM users u JOIN people p ON p.id = u.person_id',
+      :tables => ['u', 'p']}].each do |conditions|
+       @report.sql = conditions[:sql]
+       conditions[:tables].each { |table| assert_includes @report.tables_or_aliases, table }
      end
   end
 

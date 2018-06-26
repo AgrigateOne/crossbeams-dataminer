@@ -83,6 +83,14 @@ module Crossbeams
         @parsed_sql.tables
       end
 
+      # The list of tables (or aliases when applicable) referenced in the query.
+      #
+      # @return [Array<String>] the list of tables or aliases.
+      def tables_or_aliases
+        raise 'SQL string has not yet been set' if @sql.nil?
+        @parsed_sql.aliases.keys + (tables - @parsed_sql.aliases.values)
+      end
+
       # Replace the where clause with a new one.
       #
       # @param params {Array<QueryParameter>] an array of QueryParameters.
