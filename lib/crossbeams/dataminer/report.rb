@@ -126,7 +126,7 @@ module Crossbeams
         end
       end
 
-      # Extract the LIMiT value from the SQL.
+      # Extract the LIMIT value from the SQL.
       #
       # @return limit [Integer]
       def limit_from_sql
@@ -197,7 +197,11 @@ module Crossbeams
       # @param delimiters [Symbol] the type of delimiters to use. Can be :sql (default) or :mssql.
       # @return [String] the SQL to run.
       def runnable_sql_delimited(delimiters = :sql)
-        delimiters == :mssql ? runnable_sql.tr('"', '') : runnable_sql
+        return runnable_sql if delimiters == :sql
+        raise SyntaxError, 'OFFSET clause is not available for MSSQL queries' if offset_from_sql
+        limit = limit_from_sql
+        sql = limit.nil? ? runnable_sql : convert_limit_to_top(runnable_sql, limit)
+        sql.tr('"', '')
       end
 
       # Get a column by its +name+.
@@ -320,6 +324,11 @@ module Crossbeams
       end
 
       private
+
+      def convert_limit_to_top(runnable_sql, limit)
+        sql = runnable_sql.sub(/ limit #{limit}/i, '')
+        sql.sub(/select /i, "SELECT TOP #{limit} ")
+      end
 
       def tree_select_stmt(tree)
         tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT]
