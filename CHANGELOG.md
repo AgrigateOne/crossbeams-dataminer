@@ -7,11 +7,16 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- "runnable_sql_delimited" method wraps "runable_sql" method. For :mssql will strip out double quote identifiers.
-- New report method "tables_or_aliases". Returns all tables used in the query, but returns an alias when that is used instead of a table.
-  Note that this will not return the table name if a table is used twice - once with an alias and once witout.
 ### Changed
 ### Fixed
+
+## [0.1.5] - 2018-07-08
+### Added
+- "runnable_sql_delimited" method wraps "runable_sql" method. For :mssql will strip out double quote identifiers.
+- "runnable_sql_delimited" converts a LIMIT clause to a TOP clause for :mssql.
+- "runnable_sql_delimited" will raise a Syntax error for :mssql queries that contain an OFFSET clause.
+- New report method "tables_or_aliases". Returns all tables used in the query, but returns an alias when that is used instead of a table.
+  Note that this will not return the table name if a table is used twice - once with an alias and once witout.
 
 ## [0.1.4] - 2018-04-11
 ### Changed
