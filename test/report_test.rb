@@ -56,13 +56,26 @@ class ReportTest < Minitest::Test
     assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql_delimited(:mssql)
   end
 
+  def test_runnable_for_mssql_with_limit
+    @report.sql = "SELECT id, name FROM users LIMIT 10"
+    @report.apply_params([])
+    assert_equal %Q{SELECT "id", "name" FROM "users" LIMIT 10}, @report.runnable_sql_delimited
+    assert_equal %Q{SELECT TOP 10 id, name FROM users}, @report.runnable_sql_delimited(:mssql)
+  end
+
+  def test_runnable_for_mssql_with_offset
+    @report.sql = "SELECT id, name FROM users OFFSET 10 LIMIT 10"
+    @report.apply_params([])
+    assert_equal %Q{SELECT "id", "name" FROM "users" LIMIT 10 OFFSET 10}, @report.runnable_sql_delimited
+    assert_raises(Crossbeams::Dataminer::SyntaxError) { @report.runnable_sql_delimited(:mssql) }
+  end
+
   def test_apply_params
     @report.sql = "SELECT id, name FROM users"
     params = []
     params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'Fred'))
     params << Crossbeams::Dataminer::QueryParameter.new('logins', Crossbeams::Dataminer::OperatorValue.new('=', 12, :integer))
     @report.apply_params(params)
-    # assert_equal "SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12", @report.runnable_sql
     assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred' AND "logins" = 12}, @report.runnable_sql
   end
 
