@@ -197,7 +197,7 @@ module Crossbeams
       # @param delimiters [Symbol] the type of delimiters to use. Can be :sql (default) or :mssql.
       # @return [String] the SQL to run.
       def runnable_sql_delimited(delimiters = :sql)
-        return runnable_sql if delimiters == :sql
+        return runnable_sql if delimiters != :mssql
         raise SyntaxError, 'OFFSET clause is not available for MSSQL queries' if offset_from_sql
         limit = limit_from_sql
         sql = limit.nil? ? runnable_sql : convert_limit_to_top(runnable_sql, limit)

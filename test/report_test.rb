@@ -53,6 +53,7 @@ class ReportTest < Minitest::Test
     @report.sql = "SELECT id, name FROM users"
     @report.apply_params([])
     assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql_delimited
+    assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql_delimited(:postgresl)
     assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql_delimited(:mssql)
   end
 
