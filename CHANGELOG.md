@@ -9,6 +9,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+- Raise an exception if the SQL used for a QueryParameterDefinition `list_def` is not a SELECT.
 
 ## [0.1.5] - 2018-07-08
 ### Added

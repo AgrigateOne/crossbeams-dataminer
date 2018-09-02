@@ -1,21 +1,30 @@
 module Crossbeams
   module Dataminer
     class QueryParameterDefinition
-      attr_accessor :column, :caption, :data_type, :control_type, :list_def, :ui_priority, :default_value, :list_values
+      attr_accessor :column, :caption, :data_type, :control_type, :ui_priority, :default_value, :list_values
+      attr_reader :list_def
 
       def initialize(column, options = {})
         @column        = column # THIS IS NAMESPACED....
         @caption       = options.fetch(:caption, @column)
         @data_type     = options.fetch(:data_type, :string)
         @control_type  = options.fetch(:control_type, :text)
-        @list_def      = options[:list_def]
-        @ordered_list  = @list_def && @list_def.is_a?(String) && @list_def.match?(/order\s+by/i)
+        self.list_def  = options[:list_def]
         @ui_priority   = options.fetch(:ui_priority, 1)
         @default_value = options[:default_value]
         @list_values   = []
       end
 
       # TODO: validate attributes...
+
+      def list_def=(value)
+        @ordered_list = false
+        if value&.is_a?(String)
+          raise ArgumentError, 'List definition SQL MUST be a SELECT' if value.match?(/insert |update |delete /i)
+          @ordered_list = value.match?(/order\s+by/i)
+        end
+        @list_def = value
+      end
 
       def ==(other)
         other.column == column
