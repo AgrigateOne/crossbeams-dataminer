@@ -362,4 +362,55 @@ class ReportTest < Minitest::Test
     expect           = %Q{SELECT ARRAY["id", "name"] AS combin, "email" FROM "users"}
     assert_equal expect, @report.runnable_sql
   end
+
+  def test_parameter_description
+    base_sql = %Q{SELECT "id", "name" FROM "users"}
+    param_set = {
+      id_eq:   Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('=', 1, :integer)), # Might be good to have: ", display_values: { 1 => 'Voyage' }"
+      id_gt:   Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('>', 1, :integer)),
+      id_gteq: Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('>=', 1, :integer)),
+      id_nteq: Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('<>', 1, :integer)),
+      id_lt:   Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('<', 1, :integer)),
+      id_lteq: Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('<=', 1, :integer)),
+      id_null: Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('is_null', 1, :integer)),
+      id_val:  Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('not_null', 1, :integer)),
+      id_in:   Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('in', [1,2,3], :integer)),
+      id_or:   Crossbeams::Dataminer::QueryParameter.new('id', Crossbeams::Dataminer::OperatorValue.new('=', [1,2,3], :integer), is_an_or_range: true),
+      st_in:   Crossbeams::Dataminer::QueryParameter.new('nm', Crossbeams::Dataminer::OperatorValue.new('in', ['Joe','Pete'], :string)),
+      st_sw:   Crossbeams::Dataminer::QueryParameter.new('nm', Crossbeams::Dataminer::OperatorValue.new('starts_with', 'Jo', :string)),
+      st_ew:   Crossbeams::Dataminer::QueryParameter.new('nm', Crossbeams::Dataminer::OperatorValue.new('ends_with', 'han', :string)),
+      st_cnt:  Crossbeams::Dataminer::QueryParameter.new('nm', Crossbeams::Dataminer::OperatorValue.new('contains', 'ete', :string)),
+      true:    Crossbeams::Dataminer::QueryParameter.new('active', Crossbeams::Dataminer::OperatorValue.new('=', true, :boolean)),
+      false:   Crossbeams::Dataminer::QueryParameter.new('active', Crossbeams::Dataminer::OperatorValue.new('=', false, :boolean)),
+      between: Crossbeams::Dataminer::QueryParameter.new('dt', Crossbeams::Dataminer::OperatorValue.new('between', [Time.new(2018,1,1), Time.new(2018,1,3)], :date)),
+    }
+
+    sets = {
+      [:id_eq] => ['id equals 1'],
+      [:id_gt] => ['id greater than 1'],
+      [:id_gteq] => ['id greater than or equal to 1'],
+      [:id_nteq] => ['id not equal to 1'],
+      [:id_lt] => ['id less than 1'],
+      [:id_lteq] => ['id less than or equal to 1'],
+      [:id_null] => ['id is blank'],
+      [:id_val] => ['id is not blank'],
+      [:id_in] => ['id is any of 1, 2 or 3'],
+      [:id_or] => ['(id equals 1 OR id equals 2 OR id equals 3)'],
+      [:st_in] => ["nm is any of 'Joe' or 'Pete'"],
+      [:st_sw] => ["nm starts with 'Jo'"],
+      [:st_ew] => ["nm ends with 'han'"],
+      [:st_cnt] => ["nm contains 'ete'"],
+      [:true] => ['is active'],
+      [:false] => ['is not active'],
+      [:between] => ["dt is between '2018-01-01 00:00:00 +0200' and '2018-01-03 00:00:00 +0200'"],
+      [:id_gt, :st_in] => ['id greater than 1', "nm is any of 'Joe' or 'Pete'"]
+    }
+    sets.each do |keys, texts|
+      @report.sql = base_sql
+      params = []
+      keys.each { |k| params << param_set[k] }
+      @report.apply_params(params)
+      assert_equal texts, @report.parameter_texts
+    end
+  end
 end

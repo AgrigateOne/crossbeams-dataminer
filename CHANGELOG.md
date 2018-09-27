@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- New method `parameter_texts` for Report to display selected parameters in an array of human-readable strings.
 ### Changed
 ### Fixed
 - Raise an exception if the SQL used for a QueryParameterDefinition `list_def` is not a SELECT.

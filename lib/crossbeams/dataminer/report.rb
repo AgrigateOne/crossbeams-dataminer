@@ -39,14 +39,15 @@ module Crossbeams
       #
       # @param value [String] the SQL query.
       # @return void.
-      def sql=(value)
+      def sql=(value) # rubocop:disable Metrics/AbcSize
         @current_columns = @columns.dup
         @columns.clear
+        @applied_params = []
 
         @parsed_sql     = PgQuery.parse(value)
         @modified_parse = nil
 
-        validate_is_select!
+        assert_select_query!
 
         create_and_validate_columns
 
@@ -115,6 +116,7 @@ module Crossbeams
         apply_limit
         apply_offset
 
+        @applied_params = params
         return if params.empty?
 
         string_params = params.map(&:to_string)
@@ -173,6 +175,13 @@ module Crossbeams
       # @return void.
       def apply_order
         modified_select['sortClause'] = @order
+      end
+
+      # The applied parameters as an array of strings.
+      #
+      # @return [Array<String>] the chosen parameter descriptions.
+      def parameter_texts
+        @applied_params.map(&:to_text)
       end
 
       # Display the PgQuery's parsetree.
@@ -245,10 +254,8 @@ module Crossbeams
         raise 'External settings must be a hash' unless ext_set.is_a?(Hash)
         @external_settings = ext_set
 
-        hash[:columns].each { |name, column| @columns[name].modify_from_hash(column) }
-
-        @query_parameter_definitions = []
-        hash[:query_parameter_definitions].each { |qpd| @query_parameter_definitions << QueryParameterDefinition.create_from_hash(qpd) }
+        update_columns_from_hash(hash)
+        update_query_parameter_definitions_from_hash(hash)
 
         self
       end
@@ -365,7 +372,7 @@ module Crossbeams
         tree_select_stmt(@modified_parse.tree)
       end
 
-      def validate_is_select!
+      def assert_select_query!
         raise ArgumentError, 'Only SELECT is allowed' if original_select.nil?
       end
 
@@ -407,6 +414,15 @@ module Crossbeams
         pg_where = PgQuery.parse('SELECT 1')
         tree_select_stmt(pg_where.tree)['whereClause'] = modified_select['whereClause']
         pg_where
+      end
+
+      def update_columns_from_hash(hash)
+        hash[:columns].each { |name, column| @columns[name].modify_from_hash(column) }
+      end
+
+      def update_query_parameter_definitions_from_hash(hash)
+        @query_parameter_definitions = []
+        hash[:query_parameter_definitions].each { |qpd| @query_parameter_definitions << QueryParameterDefinition.create_from_hash(qpd) }
       end
     end
   end

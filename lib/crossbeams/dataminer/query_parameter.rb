@@ -33,6 +33,30 @@ module Crossbeams
         end
       end
 
+      def to_text
+        operator = @op_val.operator_for_text
+        values   = @op_val.values_for_sql
+
+        if values.first.to_s.match?(NULL_TEST)
+          "#{unqualified_column_name} #{operator}"
+        elsif @op_val.data_type == :boolean
+          if @op_val.values.first
+            "is #{unqualified_column_name}"
+          else
+            "is not #{unqualified_column_name}"
+          end
+        else
+          case operator
+          when BETWEEN_TEST
+            "#{unqualified_column_name} is #{operator} #{values[0]} and #{values[1]}"
+          when /any of/i
+            "#{unqualified_column_name} #{operator} #{values.map { |v| v }.join(', ').sub(", #{values.last}", " or #{values.last}")}"
+          else
+            range_or_standard_to_text(operator, values) # .map { |v| v.to_s.tr('%', '') })
+          end
+        end
+      end
+
       def self.from_definition(parameter_definition, op_val)
         op_val.data_type = parameter_definition.data_type if op_val.data_type == :string && parameter_definition.data_type != :string
         new(parameter_definition.column, op_val)
@@ -46,6 +70,26 @@ module Crossbeams
         else
           "#{@qualified_column_name} #{operator} #{values.first}"
         end
+      end
+
+      def range_or_standard_to_text(operator, values)
+        if @is_an_or_range
+          '(' << values.map { |v| "#{unqualified_column_name} #{operator} #{v.tr('%', '')}" }.join(' OR ') << ')'
+        else
+          "#{unqualified_column_name} #{operator} #{values.first.tr('%', '')}"
+        end
+      end
+
+      def range_or_standard_to_text(operator, values)
+        if @is_an_or_range
+          '(' << values.map { |v| "#{unqualified_column_name} #{operator} #{v}" }.join(' OR ') << ')'
+        else
+          "#{unqualified_column_name} #{operator} #{values.first}"
+        end
+      end
+
+      def unqualified_column_name
+        @qualified_column_name.split('.').last
       end
     end
   end

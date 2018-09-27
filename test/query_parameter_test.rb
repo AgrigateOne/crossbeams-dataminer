@@ -26,6 +26,12 @@ class QueryParameterTest < Minitest::Test
     assert_equal "col = 't'", param.to_string
   end
 
+  def test_in
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in', [1,2,3], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col IN (1,2,3)", param.to_string
+  end
+
   def test_can_create_from_definition
     opval = Crossbeams::Dataminer::OperatorValue.new('=', 'FRED')
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval)

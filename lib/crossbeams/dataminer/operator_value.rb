@@ -2,8 +2,25 @@ module Crossbeams
   module Dataminer
     class OperatorValue
       attr_accessor :data_type
+      attr_reader :values
 
       VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in is_null not_null].freeze
+
+      OPERATORS = {
+        '=' => 'equals',
+        '>=' => 'greater than or equal to',
+        '<=' => 'less than or equal to',
+        '<>' => 'not equal to',
+        '>' => 'greater than',
+        '<' => 'less than',
+        'between' => 'between',
+        'starts_with' => 'starts with',
+        'ends_with' => 'ends with',
+        'contains' => 'contains',
+        'in' => 'is any of',
+        'is_null' => 'is blank',
+        'not_null' => 'is not blank'
+      }.freeze
 
       def initialize(operator, values = nil, data_type = nil)
         @operator  = operator
@@ -29,6 +46,10 @@ module Crossbeams
         else
           @operator
         end
+      end
+
+      def operator_for_text
+        OPERATORS[@operator]
       end
 
       def check_for_valid_operator_value_combination
