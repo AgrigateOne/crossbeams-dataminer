@@ -33,7 +33,7 @@ module Crossbeams
         end
       end
 
-      def to_text
+      def to_text # rubocop:disable Metrics/AbcSize
         operator = @op_val.operator_for_text
         values   = @op_val.values_for_sql
 
@@ -74,17 +74,9 @@ module Crossbeams
 
       def range_or_standard_to_text(operator, values)
         if @is_an_or_range
-          '(' << values.map { |v| "#{unqualified_column_name} #{operator} #{v.tr('%', '')}" }.join(' OR ') << ')'
+          '(' << values.map { |v| "#{unqualified_column_name} #{operator} #{v.to_s.tr('%', '')}" }.join(' OR ') << ')'
         else
-          "#{unqualified_column_name} #{operator} #{values.first.tr('%', '')}"
-        end
-      end
-
-      def range_or_standard_to_text(operator, values)
-        if @is_an_or_range
-          '(' << values.map { |v| "#{unqualified_column_name} #{operator} #{v}" }.join(' OR ') << ')'
-        else
-          "#{unqualified_column_name} #{operator} #{values.first}"
+          "#{unqualified_column_name} #{operator} #{values.first.to_s.tr('%', '')}"
         end
       end
 

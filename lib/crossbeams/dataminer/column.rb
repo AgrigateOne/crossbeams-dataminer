@@ -15,7 +15,8 @@ module Crossbeams
     class Column
       attr_accessor :name,      :sequence_no, :caption,   :namespaced_name, :data_type,
                     :width,     :format,      :hide,      :groupable,       :group_by_seq,
-                    :group_sum, :group_avg,   :group_min, :group_max,       :parse_path
+                    :group_sum, :group_avg,   :group_min, :group_max,       :parse_path,
+                    :pinned
 
       def initialize(sequence_no, parse_path, options = {})
         @name            = get_name(parse_path)
@@ -25,7 +26,7 @@ module Crossbeams
         @caption         = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
         @data_type       = options.fetch(:data_type, :string)
 
-        %i[width format group_by_seq].each do |att|
+        %i[width format group_by_seq pinned].each do |att|
           instance_variable_set("@#{att}", options[att])
         end
 
@@ -49,7 +50,7 @@ module Crossbeams
       def to_hash
         hash = {}
         %i[name sequence_no caption namespaced_name data_type width
-           format hide groupable group_by_seq
+           format hide pinned groupable group_by_seq
            group_sum group_avg group_min group_max].each { |a| hash[a] = send(a) }
         hash
       end
@@ -59,7 +60,7 @@ module Crossbeams
       # @param column [Hash] the key/value hash using symbol keys.
       # @return void.
       def modify_from_hash(column)
-        %i[sequence_no namespaced_name data_type caption width format hide
+        %i[sequence_no namespaced_name data_type caption width format hide pinned
            groupable group_by_seq group_sum group_avg group_min group_max].each do |att|
           send("#{att}=", column[att])
         end
@@ -71,7 +72,7 @@ module Crossbeams
       # @return self.
       def update_from(previous_column)
         return self if previous_column.nil?
-        %i[data_type caption width format hide
+        %i[data_type caption width format hide pinned
            groupable group_by_seq group_sum group_avg group_min group_max].each do |att|
           send("#{att}=", previous_column.send(att))
         end
@@ -82,11 +83,7 @@ module Crossbeams
 
       # Column name - returns field name or its alias if provided.
       def get_name(restarget)
-        if restarget['name']
-          restarget['name']
-        else
-          get_name_from_val(restarget['val'])
-        end
+        restarget['name'] || get_name_from_val(restarget['val'])
       end
 
       def get_name_from_val(val)
