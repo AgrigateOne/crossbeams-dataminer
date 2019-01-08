@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - New method `parameter_texts` for Report to display selected parameters in an array of human-readable strings.
+- New column attribute `pinned`. Can be 'left' or 'right' or nil.
 ### Changed
 ### Fixed
 - Raise an exception if the SQL used for a QueryParameterDefinition `list_def` is not a SELECT.
