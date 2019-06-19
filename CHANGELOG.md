@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- `ordered_query_parameter_definitions` method for Reports. Returns parameter definitions ordered first by UI priority, then by caption.
 ### Changed
 ### Fixed
 

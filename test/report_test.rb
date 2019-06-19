@@ -132,6 +132,35 @@ class ReportTest < Minitest::Test
     assert @report.columns['name'].hide
   end
 
+  def test_query_param_ui_order
+    @report.sql = %Q{SELECT "id", "name" FROM "users"}
+    @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('ghi',
+                                                            :caption       => 'Ghi',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 2,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('abc',
+                                                            :caption       => 'Abc',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 2,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('def',
+                                                            :caption       => 'Def',
+                                                            :data_type     => :string,
+                                                            :control_type  => :text,
+                                                            :ui_priority   => 1,
+                                                            :default_value => nil,
+                                                            :list_def      => nil))
+    expect_std = %w[Ghi Abc Def]
+    expect_ord = %w[Def Abc Ghi]
+    assert_equal expect_std, @report.query_parameter_definitions.map { |q| q.caption }
+    assert_equal expect_ord, @report.ordered_query_parameter_definitions.map { |q| q.caption }
+  end
+
   def test_cast_char_without_limit_override
     @report.sql = "SELECT CAST(id AS character varying) AS char_id FROM users"
     assert_equal %Q{SELECT "id"::varchar AS char_id FROM "users"}, @report.runnable_sql
