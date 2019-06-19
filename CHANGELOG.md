@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.1.7] - 2019-06-19
+### Added
+- `ordered_query_parameter_definitions` method for Reports. Returns parameter definitions ordered first by UI priority, then by caption.
+
 ## [0.1.6] - 2019-01-08
 ### Added
 - New method `parameter_texts` for Report to display selected parameters in an array of human-readable strings.

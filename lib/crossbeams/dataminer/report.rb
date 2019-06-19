@@ -27,6 +27,13 @@ module Crossbeams
         @external_settings           = {}
       end
 
+      # QueryParameterDefinitions in order of UI priority, then caption
+      #
+      # @return [Array<QueryParameterDefinition>]
+      def ordered_query_parameter_definitions
+        query_parameter_definitions.sort_by { |q| [q.ui_priority, q.caption] }
+      end
+
       # Get the report's columns in sequence number order.
       #
       # @return [Array<Column>] the columns ordered by sequence number.
@@ -81,6 +88,7 @@ module Crossbeams
       # @return [Array<String>] the list of tables.
       def tables
         raise 'SQL string has not yet been set' if @sql.nil?
+
         @parsed_sql.tables
       end
 
@@ -89,6 +97,7 @@ module Crossbeams
       # @return [Array<String>] the list of tables or aliases.
       def tables_or_aliases
         raise 'SQL string has not yet been set' if @sql.nil?
+
         @parsed_sql.aliases.keys + (tables - @parsed_sql.aliases.values)
       end
 
@@ -208,6 +217,7 @@ module Crossbeams
       def runnable_sql_delimited(delimiters = :sql)
         return runnable_sql if delimiters != :mssql
         raise SyntaxError, 'OFFSET clause is not available for MSSQL queries' if offset_from_sql
+
         limit = limit_from_sql
         sql = limit.nil? ? runnable_sql : convert_limit_to_top(runnable_sql, limit)
         sql.tr('"', '')
@@ -252,6 +262,7 @@ module Crossbeams
         @offset  = hash[:offset]
         ext_set  = hash.fetch(:external_settings, {})
         raise 'External settings must be a hash' unless ext_set.is_a?(Hash)
+
         @external_settings = ext_set
 
         update_columns_from_hash(hash)
@@ -291,6 +302,7 @@ module Crossbeams
       # @return void.
       def add_parameter_definition(param_def)
         raise ArgumentError, 'Duplicate parameter definition' if query_parameter_definitions.any? { |other| param_def == other }
+
         query_parameter_definitions << param_def
       end
 
@@ -380,6 +392,7 @@ module Crossbeams
         original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
           col = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
           raise ArgumentError, 'SQL has duplicate column names' unless @columns[col.name].nil?
+
           previous_column = @current_columns[col.name]
           @columns[col.name] = col.update_from(previous_column)
         end
