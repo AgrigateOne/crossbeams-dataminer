@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- A new method `case_string_values` on Column to get a list of string values from a `CASE` expression.
 ### Changed
 ### Fixed
 

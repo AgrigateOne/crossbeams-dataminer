@@ -90,4 +90,25 @@ class ColumnTest < Minitest::Test
       assert true_column.send(att)
     end
   end
+
+  def first_col(qry)
+    tree = PgQuery.parse(qry).tree
+    tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT][PgQuery::TARGET_LIST_FIELD].first['ResTarget']
+  end
+
+  def test_case_values
+    tests = [
+      [%w[one two], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' ELSE NULL END AS col"],
+      [%w[one two def], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' ELSE 'def' END AS col"],
+      [%w[one two], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' WHEN no = 3 THEN 'one' END AS col"],
+      [%w[one two], "SELECT CASE WHEN act THEN CASE WHEN a = 1 THEN 'one' WHEN b = 1 THEN 'two' END WHEN d = 3 THEN 'one' END AS col"],
+      [%w[one two three], "SELECT CASE WHEN act THEN CASE WHEN a = 1 THEN 'one' WHEN b = 1 THEN 'two' END WHEN d = 3 THEN 'three' END AS col"],
+      [[], "SELECT col"]
+    ]
+    tests.each do |expect, qry|
+      raw_col = first_col(qry)
+      column = Crossbeams::Dataminer::Column.new(1, raw_col)
+      assert_equal expect, column.case_string_values
+    end
+  end
 end

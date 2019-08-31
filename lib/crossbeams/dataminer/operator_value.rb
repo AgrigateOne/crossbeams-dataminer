@@ -1,6 +1,6 @@
 module Crossbeams
   module Dataminer
-    class OperatorValue
+    class OperatorValue # rubocop:disable Metrics/ClassLength
       attr_accessor :data_type
       attr_reader :values
 
