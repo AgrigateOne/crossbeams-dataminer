@@ -72,6 +72,7 @@ module Crossbeams
       # @return self.
       def update_from(previous_column)
         return self if previous_column.nil?
+
         %i[data_type caption width format hide pinned
            groupable group_by_seq group_sum group_avg group_min group_max].each do |att|
           send("#{att}=", previous_column.send(att))
@@ -79,7 +80,42 @@ module Crossbeams
         self
       end
 
+      # Return an array of unique string values from a CASE statement column.
+      #
+      # @return Array
+      def case_string_values
+        @res = Set.new
+        get_col_results(@parse_path)
+        @res.to_a
+      end
+
       private
+
+      def get_col_results(hash) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
+        return unless hash.is_a?(Hash)
+
+        hash.each_key do |key|
+          if %w[result defresult].include?(key)
+            if hash[key].key?(PgQuery::CASE_EXPR)
+              get_col_results(hash[key])
+            else
+              apply_case_value(hash, key)
+            end
+          elsif hash[key].is_a?(Hash)
+            get_col_results(hash[key])
+          elsif hash[key].is_a?(Array)
+            hash[key].each { |hs| get_col_results(hs) }
+          end
+        end
+      end
+
+      def apply_case_value(hash, key)
+        val = hash[key].dig(PgQuery::A_CONST, 'val', PgQuery::STRING, 'str')
+        val = hash[key].dig(PgQuery::A_CONST, 'val', PgQuery::NULL) if val.nil?
+        return if val.nil? || val == {}
+
+        @res << val
+      end
 
       # Column name - returns field name or its alias if provided.
       def get_name(restarget)

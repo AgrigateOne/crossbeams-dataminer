@@ -21,6 +21,7 @@ module Crossbeams
         @ordered_list = false
         if value&.is_a?(String)
           raise ArgumentError, 'List definition SQL MUST be a SELECT' if value.match?(/insert |update |delete /i)
+
           @ordered_list = value.match?(/order\s+by/i)
         end
         @list_def = value
@@ -88,11 +89,11 @@ module Crossbeams
         end
       end
 
-      def alter_it(ar)
-        if ar.first.is_a?(Array)
-          ar.map { |a| { label: a.first, val: a.last } }
+      def alter_it(arr)
+        if arr.first.is_a?(Array)
+          arr.map { |a| { label: a.first, val: a.last } }
         else
-          ar.map { |a| { label: a, val: a } }
+          arr.map { |a| { label: a, val: a } }
         end
       end
     end
