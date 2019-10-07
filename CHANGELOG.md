@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.2.0] - 2019-10-07
+### Changed
+- Upgrade PgQuery gem from 1.0.2 to 1.1.0.
+
 ## [0.1.8] - 2019-08-31
 ### Added
 - A new method `case_string_values` on Column to get a list of string values from a `CASE` expression.
