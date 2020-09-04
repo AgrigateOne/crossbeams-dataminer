@@ -3,6 +3,7 @@ module Crossbeams
     class YamlPersistor
       def initialize(pathname)
         raise ArgumentError, 'Pathname cannot be blank' if pathname.nil? || pathname.strip.empty?
+
         @pathname = pathname
       end
 

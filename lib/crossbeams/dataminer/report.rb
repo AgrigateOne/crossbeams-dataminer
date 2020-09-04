@@ -351,6 +351,19 @@ module Crossbeams
 
       def tree_select_stmt(tree)
         tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT]
+
+        # -------------------------------------------------------------------------
+        # BELOW attempt to handle UNION queries, but this breaks down elsewhere, so
+        # the whole deparse and re-assemble would need to be redesigned...
+        # THEREFORE: Do not use union queries in DM reports.
+        # -------------------------------------------------------------------------
+
+        # sel = tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT]
+        # return sel if sel.nil?
+        # return sel unless sel['larg']
+        #
+        # # UNION query, take just the first select
+        # sel['larg'][PgQuery::SELECT_STMT]
       end
 
       def array_tree_for(new_name, array_select)

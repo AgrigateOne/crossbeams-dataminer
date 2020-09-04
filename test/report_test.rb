@@ -442,4 +442,38 @@ class ReportTest < Minitest::Test
       assert_equal texts, @report.parameter_texts
     end
   end
+
+  def test_cte_query
+    cte = <<~SQL
+      WITH identifiers as (
+          SELECT DISTINCT cartons.palletizer_identifier_id,
+                          contract_workers.first_name,
+                          et.employment_type_code
+          FROM cartons
+                   LEFT JOIN contract_workers ON contract_workers.personnel_identifier_id=cartons.palletizer_identifier_id
+                   LEFT JOIN employment_types et ON contract_workers.employment_type_id = et.id
+          WHERE employment_type_code IS NULL OR employment_type_code='PACKERS')
+      SELECT identifiers.palletizer_identifier_id, identifiers.first_name,
+             identifiers.employment_type_code, COUNT(cartons.id) AS carton_count
+      FROM cartons
+               JOIN identifiers ON identifiers.palletizer_identifier_id = cartons.palletizer_identifier_id
+      GROUP BY identifiers.palletizer_identifier_id,identifiers.first_name,identifiers.employment_type_code
+    SQL
+
+    @report.sql = cte
+    assert_equal %w[palletizer_identifier_id first_name employment_type_code carton_count], @report.ordered_columns.map {|c| c.name }
+  end
+  #
+  # def test_union_query
+  #   union = <<~SQL
+  #     SELECT 'with' AS got_value, COUNT(cartons.id) AS carton_count
+  #     FROM cartons WHERE cartons.palletizer_identifier_id IS NOT NULL
+  #     UNION
+  #     SELECT 'without' AS got_value, COUNT(cartons.id) AS carton_count
+  #     FROM cartons WHERE cartons.palletizer_identifier_id IS NULL;
+  #   SQL
+  #
+  #   @report.sql = union
+  #   assert_equal %w[got_value carton_count], @report.ordered_columns.map {|c| c.name }
+  # end
 end
