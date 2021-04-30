@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- SQL with duplicate columns now specifies the column name.
 ### Fixed
 
 ## [0.2.0] - 2019-10-07

@@ -404,7 +404,7 @@ module Crossbeams
       def create_and_validate_columns
         original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
           col = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
-          raise ArgumentError, 'SQL has duplicate column names' unless @columns[col.name].nil?
+          raise ArgumentError, %(SQL has duplicate columns with name: "#{col.name}") unless @columns[col.name].nil?
 
           previous_column = @current_columns[col.name]
           @columns[col.name] = col.update_from(previous_column)
