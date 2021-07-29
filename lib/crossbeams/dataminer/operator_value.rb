@@ -23,7 +23,7 @@ module Crossbeams
       }.freeze
 
       def initialize(operator, values = nil, data_type = nil)
-        @operator  = operator
+        @operator  = operator.downcase
         @data_type = data_type || :string
         @values    = Array(values)
 
@@ -90,7 +90,7 @@ module Crossbeams
       end
 
       def check_in_values
-        'Must have range of values for IN operator' if @values.empty? || @values.first.nil?
+        'Must have range of values for IN operator' if @values.length.positive? && @values.first.nil?
       end
 
       def check_other_values

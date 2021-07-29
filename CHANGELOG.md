@@ -9,6 +9,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 - SQL with duplicate columns now specifies the column name.
+- parameter with IN operator can receive an empty array. The condition effectively becomes false (1 = 2).
 ### Fixed
 
 ## [0.2.0] - 2019-10-07

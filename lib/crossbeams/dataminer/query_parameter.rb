@@ -26,7 +26,11 @@ module Crossbeams
           when BETWEEN_TEST
             "#{@qualified_column_name} BETWEEN #{values[0]} AND #{values[1]}"
           when IN_TEST
-            "#{@qualified_column_name} IN (#{values.map { |v| v }.join(',')})"
+            if values.empty?
+              '(1 = 2)'
+            else
+              "#{@qualified_column_name} IN (#{values.map { |v| v }.join(',')})"
+            end
           else
             range_or_standard_to_string(operator, values)
           end
