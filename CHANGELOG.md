@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- New operator `match_or_null`. Will resolve to `(col = value OR col IS NULL)`.
 ### Changed
 - SQL with duplicate columns now specifies the column name.
 - parameter with IN operator can receive an empty array. The condition effectively becomes false (1 = 2).

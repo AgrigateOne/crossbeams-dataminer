@@ -4,7 +4,7 @@ module Crossbeams
       attr_accessor :data_type
       attr_reader :values
 
-      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in is_null not_null].freeze
+      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in is_null not_null match_or_null].freeze
 
       OPERATORS = {
         '=' => 'equals',
@@ -18,6 +18,7 @@ module Crossbeams
         'ends_with' => 'ends with',
         'contains' => 'contains',
         'in' => 'is any of',
+        'match_or_null' => 'is equal to or blank',
         'is_null' => 'is blank',
         'not_null' => 'is not blank'
       }.freeze

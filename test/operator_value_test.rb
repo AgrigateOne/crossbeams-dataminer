@@ -4,7 +4,7 @@ class OperatorValueTest < Minitest::Test
 
 
   def test_valid_operators
-    valids = %w{= >= <= <> > < between starts_with ends_with contains in not_null is_null}
+    valids = %w{= >= <= <> > < between starts_with ends_with contains in not_null is_null match_or_null}
     invalids = %w{12 www isnt == like}
     valids.each do |op|
       Crossbeams::Dataminer::OperatorValue.new(op, [1,2])
@@ -16,7 +16,7 @@ class OperatorValueTest < Minitest::Test
   end
 
   def test_operator_for_sql
-    same_ops           = %w{= >= <= <> > < between in}
+    same_ops           = %w{= >= <= <> > < between in match_or_null}
     ops                = Hash[same_ops.zip same_ops]
     ops['is_null']     = 'is'
     ops['not_null']    = 'is not'
