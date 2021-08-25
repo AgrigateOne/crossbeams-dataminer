@@ -1,10 +1,11 @@
 module Crossbeams
   module Dataminer
     class QueryParameter
-      NULL_TEST    = /NULL/i
-      NOT_TEST     = /NOT/i
-      BETWEEN_TEST = /BETWEEN/i
-      IN_TEST      = /IN/i
+      NULL_TEST       = /NULL/i.freeze
+      NOT_TEST        = /NOT/i.freeze
+      BETWEEN_TEST    = /BETWEEN/i.freeze
+      IN_TEST         = /IN/i.freeze
+      MATCH_NULL_TEST = /MATCH_OR_NULL/i.freeze
 
       def initialize(namespaced_name, op_val, options = {})
         @qualified_column_name = namespaced_name
@@ -18,7 +19,9 @@ module Crossbeams
         operator = @op_val.operator_for_sql
         values   = @op_val.values_for_sql
 
-        if values.first.to_s.match?(NULL_TEST)
+        if operator.match(MATCH_NULL_TEST)
+          "(#{@qualified_column_name} = #{values.first} OR #{@qualified_column_name} IS NULL)"
+        elsif values.first.to_s.match?(NULL_TEST)
           op_type = operator.match?(NOT_TEST) ? true : false
           "#{@qualified_column_name} #{NOT_NULL_TEST[op_type]}"
         else
@@ -31,6 +34,8 @@ module Crossbeams
             else
               "#{@qualified_column_name} IN (#{values.map { |v| v }.join(',')})"
             end
+          when MATCH_NULL_TEST
+            match_null(operator, values)
           else
             range_or_standard_to_string(operator, values)
           end
@@ -41,7 +46,9 @@ module Crossbeams
         operator = @op_val.operator_for_text
         values   = @op_val.values_for_sql
 
-        if values.first.to_s.match?(NULL_TEST)
+        if operator == 'is equal to or blank'
+          "#{unqualified_column_name} is #{values.first} or blank"
+        elsif values.first.to_s.match?(NULL_TEST)
           "#{unqualified_column_name} #{operator}"
         elsif @op_val.data_type == :boolean
           if @op_val.values.first
@@ -54,7 +61,11 @@ module Crossbeams
           when BETWEEN_TEST
             "#{unqualified_column_name} is #{operator} #{values[0]} and #{values[1]}"
           when /any of/i
-            "#{unqualified_column_name} #{operator} #{values.map { |v| v }.join(', ').sub(", #{values.last}", " or #{values.last}")}"
+            if values.empty?
+              "#{unqualified_column_name} check is ignored"
+            else
+              "#{unqualified_column_name} #{operator} #{values.map { |v| v }.join(', ').sub(", #{values.last}", " or #{values.last}")}"
+            end
           else
             range_or_standard_to_text(operator, values) # .map { |v| v.to_s.tr('%', '') })
           end

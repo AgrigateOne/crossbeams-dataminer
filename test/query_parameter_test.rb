@@ -14,10 +14,22 @@ class QueryParameterTest < Minitest::Test
     assert_equal "col IS NULL", param.to_string
   end
 
+  def test_null_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('is_null', 123, :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col is blank", param.to_text
+  end
+
   def test_not_null
     opval1 = Crossbeams::Dataminer::OperatorValue.new('not_null', 123, :integer)
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
     assert_equal "col IS NOT NULL", param.to_string
+  end
+
+  def test_not_null_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('not_null', 123, :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col is not blank", param.to_text
   end
 
   def test_boolean
@@ -26,10 +38,40 @@ class QueryParameterTest < Minitest::Test
     assert_equal "col = 't'", param.to_string
   end
 
+  def test_boolean_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('=', true, :boolean)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "is col", param.to_text
+  end
+
+  def test_match_or_null
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('match_or_null', 1, :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "(col = 1 OR col IS NULL)", param.to_string
+  end
+
+  def test_match_or_null_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('match_or_null', 1, :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col is 1 or blank", param.to_text
+  end
+
+  def test_match_or_null_str
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('match_or_null', 'AAA')
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "(col = 'AAA' OR col IS NULL)", param.to_string
+  end
+
   def test_in
     opval1 = Crossbeams::Dataminer::OperatorValue.new('in', [1,2,3], :integer)
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
     assert_equal "col IN (1,2,3)", param.to_string
+  end
+
+  def test_in_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in', [1,2,3], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col is any of 1, 2 or 3", param.to_text
   end
 
   def test_in_str
@@ -42,6 +84,12 @@ class QueryParameterTest < Minitest::Test
     opval1 = Crossbeams::Dataminer::OperatorValue.new('in', [], :integer)
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
     assert_equal "(1 = 2)", param.to_string
+  end
+
+  def test_empty_in_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in', [], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col check is ignored", param.to_text
   end
 
   def test_can_create_from_definition
