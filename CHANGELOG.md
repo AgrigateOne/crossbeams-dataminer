@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Changes `RuntimeException`s to `Crossbeams::Dataminer::Error`s.
 ### Fixed
 
 ## [0.2.1] - 2021-08-25

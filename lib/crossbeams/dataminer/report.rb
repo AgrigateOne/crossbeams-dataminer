@@ -87,7 +87,7 @@ module Crossbeams
       #
       # @return [Array<String>] the list of tables.
       def tables
-        raise 'SQL string has not yet been set' if @sql.nil?
+        raise Error, 'SQL string has not yet been set' if @sql.nil?
 
         @parsed_sql.tables
       end
@@ -96,7 +96,7 @@ module Crossbeams
       #
       # @return [Array<String>] the list of tables or aliases.
       def tables_or_aliases
-        raise 'SQL string has not yet been set' if @sql.nil?
+        raise Error, 'SQL string has not yet been set' if @sql.nil?
 
         @parsed_sql.aliases.keys + (tables - @parsed_sql.aliases.values)
       end
@@ -261,7 +261,7 @@ module Crossbeams
         @limit   = hash[:limit]
         @offset  = hash[:offset]
         ext_set  = hash.fetch(:external_settings, {})
-        raise 'External settings must be a hash' unless ext_set.is_a?(Hash)
+        raise Error, 'External settings must be a hash' unless ext_set.is_a?(Hash)
 
         @external_settings = ext_set
 

@@ -314,11 +314,11 @@ class ReportTest < Minitest::Test
   end
 
   def test_table_method_rejected_without_sql
-    assert_raises(RuntimeError) { @report.tables }
+    assert_raises(Crossbeams::Dataminer::Error) { @report.tables }
   end
 
   def test_table_alias_method_rejected_without_sql
-    assert_raises(RuntimeError) { @report.tables_or_aliases }
+    assert_raises(Crossbeams::Dataminer::Error) { @report.tables_or_aliases }
   end
 
   def test_table_method_returns_tables

@@ -10,6 +10,8 @@ require 'yaml'
 
 module Crossbeams
   module Dataminer
+    class Error < StandardError; end
+
     class SyntaxError < StandardError; end
   end
 end
