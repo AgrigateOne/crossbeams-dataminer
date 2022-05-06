@@ -9,6 +9,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 - Changes `RuntimeException`s to `Crossbeams::Dataminer::Error`s.
+- `YamlPersistor` now stores the SQL key's value as a YAML literal (starting with `|` char) instead of a quoted string. This makes file diffing easier.
 ### Fixed
 
 ## [0.2.1] - 2021-08-25
