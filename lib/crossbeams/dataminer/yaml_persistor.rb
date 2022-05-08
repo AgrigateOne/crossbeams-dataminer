@@ -41,7 +41,7 @@ module Crossbeams
         nh = hash.dup
         nh[:sql] = 'XXSQLXX'
         str = nh.to_yaml
-        ns = ":sql: |\n  #{sql.gsub(/\n/, "\n  ")}"
+        ns = ":sql: |\n  #{sql.gsub(/(\r\n|\r|\n)/, "\n  ")}"
         str.sub(':sql: XXSQLXX', ns)
       end
     end
