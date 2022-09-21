@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Upgrade `pg_query` to version 2.1.4
 - Changes `RuntimeException`s to `Crossbeams::Dataminer::Error`s.
 - `YamlPersistor` now stores the SQL key's value as a YAML literal (starting with `|` char) instead of a quoted string. This makes file diffing easier.
 ### Fixed

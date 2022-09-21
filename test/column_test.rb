@@ -2,53 +2,54 @@ require 'test_helper'
 
 class ColumnTest < Minitest::Test
 
-  BASIC_COLUMN = {"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"b"}}, {"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7}
+  BASIC_COLUMN = PgQuery::ResTarget.new(val:
+                                        PgQuery::Node.from(PgQuery::ColumnRef.new(fields: [PgQuery::Node.from(PgQuery::String.new(str: 'b')),
+                                                                                           PgQuery::Node.from(PgQuery::String.new(str: 'name'))])))
 
   def test_column_caption
-    column = Crossbeams::Dataminer::Column.new(1, {"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"b"}}, {"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7})
+    column = Crossbeams::Dataminer::Column.new(1, BASIC_COLUMN)
     assert_equal 'Name', column.caption
   end
 
   def test_column_namespace_name_no_alias
-    column = Crossbeams::Dataminer::Column.new(1, {"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7})
+    pg_col = PgQuery::ResTarget.new(val: PgQuery::Node.from(PgQuery::ColumnRef.new(fields: [PgQuery::Node.from(PgQuery::String.new(str: 'name'))])))
+    column = Crossbeams::Dataminer::Column.new(1, pg_col)
     assert_equal 'name', column.namespaced_name
   end
 
   def test_column_namespace_name
-    column = Crossbeams::Dataminer::Column.new(1, {"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"b"}}, {"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7})
+    column = Crossbeams::Dataminer::Column.new(1, BASIC_COLUMN)
     assert_equal 'b.name', column.namespaced_name
   end
 
   def test_column_override_caption
-    column = Crossbeams::Dataminer::Column.new(1, {"name"=>"surname", "val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"b"}}, {"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7})
+    pg_col = first_col("SELECT b.name AS surname FROM users b")
+    column = Crossbeams::Dataminer::Column.new(1, pg_col)
     assert_equal 'Surname', column.caption
   end
 
   def test_column_override_name
-    column = Crossbeams::Dataminer::Column.new(1, {"name"=>"surname", "val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7})
+    pg_col = first_col("SELECT b.name AS surname FROM users b")
+    column = Crossbeams::Dataminer::Column.new(1, pg_col)
     assert_equal 'surname', column.name
   end
 
   def test_column_override_namespace_name
-    column = Crossbeams::Dataminer::Column.new(1, {"name"=>"surname", "val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"b"}}, {"String"=>{"str"=>"name"}}], "location"=>7}}, "location"=>7})
+    pg_col = first_col("SELECT b.name AS surname FROM users b")
+    column = Crossbeams::Dataminer::Column.new(1, pg_col)
     assert_equal 'b.name', column.namespaced_name
   end
 
   def test_column_function_name
-    column = Crossbeams::Dataminer::Column.new(1, {"name"=>"inv_month", "val"=> {"FuncCall"=> {"funcname"=>[{"String"=>{"str"=>"to_char"}}],
-                                       "args"=> [{"ColumnRef"=> {"fields"=>[{"String"=>{"str"=>"service_provider_invoices"}},
-                                      {"String"=>{"str"=>"invoice_date"}}], "location"=>15}},
-    {"A_Const"=>{"val"=>{"String"=>{"str"=>"YYYY-MM"}}, "location"=>59}}], "location"=>7}}, "location"=>7})
-    assert_equal 'inv_month', column.name
+    pg_col = first_col("SELECT to_char(ps.created_at, 'IYYY--IW'::text) AS packed_week FROM tabs")
+    column = Crossbeams::Dataminer::Column.new(1, pg_col)
+    assert_equal 'packed_week', column.name
   end
 
 
   def test_column_function_namespace_name
-    column = Crossbeams::Dataminer::Column.new(1, {"name"=>"inv_month", "val"=> {"FuncCall"=> {"funcname"=>[{"String"=>{"str"=>"to_char"}}],
-                                       "args"=> [{"ColumnRef"=> {"fields"=>[{"String"=>{"str"=>"service_provider_invoices"}},
-                                      {"String"=>{"str"=>"invoice_date"}}], "location"=>15}},
-    {"A_Const"=>{"val"=>{"String"=>{"str"=>"YYYY-MM"}}, "location"=>59}}], "location"=>7}}, "location"=>7})
-    # assert_equal 'inv_month', column.namespaced_name
+    pg_col = first_col("SELECT to_char(ps.created_at, 'IYYY--IW'::text) AS packed_week FROM tabs")
+    column = Crossbeams::Dataminer::Column.new(1, pg_col)
     assert_nil column.namespaced_name
   end
 
@@ -93,13 +94,14 @@ class ColumnTest < Minitest::Test
 
   def first_col(qry)
     tree = PgQuery.parse(qry).tree
-    tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT][PgQuery::TARGET_LIST_FIELD].first['ResTarget']
+    tree.stmts[0].stmt.select_stmt.target_list.first.res_target
   end
 
   def test_case_values
     tests = [
       [%w[one two], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' ELSE NULL END AS col"],
       [%w[one two def], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' ELSE 'def' END AS col"],
+      [%w[one two def], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' ELSE CASE WHEN passed THEN 'def' ELSE NULL END END AS col"],
       [%w[one two], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' WHEN no = 3 THEN 'one' END AS col"],
       [%w[one two], "SELECT CASE WHEN act THEN CASE WHEN a = 1 THEN 'one' WHEN b = 1 THEN 'two' END WHEN d = 3 THEN 'one' END AS col"],
       [%w[one two three], "SELECT CASE WHEN act THEN CASE WHEN a = 1 THEN 'one' WHEN b = 1 THEN 'two' END WHEN d = 3 THEN 'three' END AS col"],

@@ -1,17 +1,5 @@
 module Crossbeams
   module Dataminer
-    # {"ResTarget"=>{"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"id"}}], "location"=>7}}, "location"=>7}}
-    # {"ResTarget"=>{"val"=>{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"u"}}, {"String"=>{"str"=>"id"}}], "location"=>7}}, "location"=>7}}
-    # {"ResTarget"=>{"name"=>"nine", "val"=>{"A_Const"=>{"val"=>{"Integer"=>{"ival"=>9}}, "location"=>21}}, "location"=>21}}
-    # {"ResTarget"=>{"val"=>{"ColumnRef"=>{"fields"=>[{"A_Star"=>{}}], "location"=>7}}, "location"=>7}}
-    # {"ResTarget"=>
-    #     {"val"=>
-    #       {"FuncCall"=>
-    #         {"funcname"=>[{"String"=>{"str"=>"date"}}],
-    #          "args"=>[{"ColumnRef"=>{"fields"=>[{"String"=>{"str"=>"u"}}, {"String"=>{"str"=>"created_at"}}], "location"=>37}}],
-    #          "location"=>32}},
-    #      "location"=>32}}
-
     class Column
       attr_accessor :name,      :sequence_no, :caption,   :namespaced_name, :data_type,
                     :width,     :format,      :hide,      :groupable,       :group_by_seq,
@@ -85,68 +73,73 @@ module Crossbeams
       # @return Array
       def case_string_values
         @res = Set.new
-        get_col_results(@parse_path)
+        get_col_results(@parse_path.val.case_expr) if @parse_path.val.case_expr
         @res.to_a
       end
 
       private
 
-      def get_col_results(hash) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
-        return unless hash.is_a?(Hash)
-
-        hash.each_key do |key|
-          if %w[result defresult].include?(key)
-            if hash[key].key?(PgQuery::CASE_EXPR)
-              get_col_results(hash[key])
-            else
-              apply_case_value(hash, key)
-            end
-          elsif hash[key].is_a?(Hash)
-            get_col_results(hash[key])
-          elsif hash[key].is_a?(Array)
-            hash[key].each { |hs| get_col_results(hs) }
+      def get_col_results(case_expr) # rubocop:disable Metrics/AbcSize
+        case_expr.args.each do |node|
+          if node.case_when.result.case_expr
+            get_col_results(node.case_when.result.case_expr)
+          else
+            apply_case_value(node.case_when.result)
           end
+        end
+
+        return unless case_expr.defresult
+
+        if case_expr.defresult.case_expr
+          get_col_results(case_expr.defresult.case_expr)
+        else
+          apply_case_value(case_expr.defresult)
         end
       end
 
-      def apply_case_value(hash, key)
-        val = hash[key].dig(PgQuery::A_CONST, 'val', PgQuery::STRING, 'str')
-        val = hash[key].dig(PgQuery::A_CONST, 'val', PgQuery::NULL) if val.nil?
-        return if val.nil? || val == {}
+      def apply_case_value(node) # rubocop:disable Metrics/AbcSize
+        return if node.a_const.val.null
+
+        val = if node.a_const.val.integer
+                node.a_const.val.integer.ival
+              elsif node.a_const.val.string
+                node.a_const.val.string.str
+              else
+                "NOTKNOWN: #{node.a_const}"
+              end
 
         @res << val
       end
 
       # Column name - returns field name or its alias if provided.
-      def get_name(restarget)
-        restarget['name'] || get_name_from_val(restarget['val'])
-      end
+      def get_name(restarget) # rubocop:disable Metrics/AbcSize
+        return restarget.name unless restarget.name.nil? || restarget.name.empty?
 
-      def get_name_from_val(val)
-        if val[PgQuery::FUNC_CALL]
-          val[PgQuery::FUNC_CALL]['funcname'].last[PgQuery::STRING]['str']
+        if restarget.val.column_ref
+          field_parse(restarget.val.column_ref.fields.last)
         else
-          fld = val[PgQuery::COLUMN_REF]['fields'].last
-          field_parse(fld)
+          restarget.val.func_call.funcname.last.string.str
         end
       end
 
       # Namespaced name as alias.fieldname. Does not return the aliased name.
       def get_namespaced_name(restarget)
         # Calculated fields or PgQuery::FUNC_CALL can't be used as a query parameter
-        restarget['val'][PgQuery::COLUMN_REF]['fields'].map { |f| field_parse(f) }.join('.') if restarget['val'][PgQuery::COLUMN_REF]
+        restarget.val.column_ref.fields.map { |f| field_parse(f) }.join('.') if restarget.val.column_ref
       end
 
       # Return field node.
       def field_parse(field)
-        if field[PgQuery::STRING]
-          field[PgQuery::STRING]['str']
-        elsif field[PgQuery::INTEGER]
-          field[PgQuery::INTEGER]['ivar']
-        elsif field[PgQuery::A_STAR]
-          PgQuery::A_STAR
+        node_type = field.node
+        case node_type
+        when :string
+          field.string.str
+        when :integer
+          field.integer.ivar
+        when :a_star
+          'pgq_a_star'
         else
-          raise ArgumentError, "DataMiner: unknown key for Dataminer::Column - #{field.keys.join(', ')}"
+          raise ArgumentError, "DataMiner: unknown key for Dataminer::Column - #{node_type - field.to_s}"
         end
       end
     end

@@ -40,34 +40,34 @@ class ReportTest < Minitest::Test
     params = []
     params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'Fred'))
     @report.replace_where(params)
-    assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred'}, @report.runnable_sql
+    assert_equal %Q{SELECT id, name FROM users WHERE name = 'Fred'}, @report.runnable_sql
   end
 
   def test_apply_no_params
     @report.sql = "SELECT id, name FROM users"
     @report.apply_params([])
-    assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql
+    assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql
   end
 
   def test_runnable_for_mssql
     @report.sql = "SELECT id, name FROM users"
     @report.apply_params([])
-    assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql_delimited
-    assert_equal %Q{SELECT "id", "name" FROM "users"}, @report.runnable_sql_delimited(:postgresl)
+    assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql_delimited
+    assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql_delimited(:postgresl)
     assert_equal %Q{SELECT id, name FROM users}, @report.runnable_sql_delimited(:mssql)
   end
 
   def test_runnable_for_mssql_with_limit
     @report.sql = "SELECT id, name FROM users LIMIT 10"
     @report.apply_params([])
-    assert_equal %Q{SELECT "id", "name" FROM "users" LIMIT 10}, @report.runnable_sql_delimited
+    assert_equal %Q{SELECT id, name FROM users LIMIT 10}, @report.runnable_sql_delimited
     assert_equal %Q{SELECT TOP 10 id, name FROM users}, @report.runnable_sql_delimited(:mssql)
   end
 
   def test_runnable_for_mssql_with_offset
     @report.sql = "SELECT id, name FROM users OFFSET 10 LIMIT 10"
     @report.apply_params([])
-    assert_equal %Q{SELECT "id", "name" FROM "users" LIMIT 10 OFFSET 10}, @report.runnable_sql_delimited
+    assert_equal %Q{SELECT id, name FROM users LIMIT 10 OFFSET 10}, @report.runnable_sql_delimited
     assert_raises(Crossbeams::Dataminer::SyntaxError) { @report.runnable_sql_delimited(:mssql) }
   end
 
@@ -77,17 +77,17 @@ class ReportTest < Minitest::Test
     params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'Fred'))
     params << Crossbeams::Dataminer::QueryParameter.new('logins', Crossbeams::Dataminer::OperatorValue.new('=', 12, :integer))
     @report.apply_params(params)
-    assert_equal %Q{SELECT "id", "name" FROM "users" WHERE "name" = 'Fred' AND "logins" = 12}, @report.runnable_sql
+    assert_equal %Q{SELECT id, name FROM users WHERE name = 'Fred' AND logins = 12}, @report.runnable_sql
   end
 
   def test_apply_params_to_existing_where
     base_sql = "SELECT id, name FROM users"
-    conditions = {'id = 2' => %Q{SELECT "id", "name" FROM "users" WHERE "id" = 2 AND "name" = 'John'},
-                  'id IS NULL' => %Q{SELECT "id", "name" FROM "users" WHERE "id" IS NULL AND "name" = 'John'},
-                  'id IS NOT NULL' => %Q{SELECT "id", "name" FROM "users" WHERE "id" IS NOT NULL AND "name" = 'John'},
-                  'active' => %Q{SELECT "id", "name" FROM "users" WHERE "active" AND "name" = 'John'},
-                  'NOT active' => %Q{SELECT "id", "name" FROM "users" WHERE NOT "active" AND "name" = 'John'},
-                  "id = 3 AND name <> 'Fred'" => %Q{SELECT "id", "name" FROM "users" WHERE "id" = 3 AND "name" <> 'Fred' AND "name" = 'John'}}
+    conditions = {'id = 2' => %Q{SELECT id, name FROM users WHERE id = 2 AND name = 'John'},
+                  'id IS NULL' => %Q{SELECT id, name FROM users WHERE id IS NULL AND name = 'John'},
+                  'id IS NOT NULL' => %Q{SELECT id, name FROM users WHERE id IS NOT NULL AND name = 'John'},
+                  'active' => %Q{SELECT id, name FROM users WHERE active AND name = 'John'},
+                  'NOT active' => %Q{SELECT id, name FROM users WHERE NOT active AND name = 'John'},
+                  "id = 3 AND name <> 'Fred'" => %Q{SELECT id, name FROM users WHERE id = 3 AND name <> 'Fred' AND name = 'John'}}
     conditions.each do |cond, expect|
       @report.sql = base_sql + ' WHERE ' + cond
       params = []
@@ -98,14 +98,14 @@ class ReportTest < Minitest::Test
   end
 
   def test_apply_params_datatype
-    base_sql = %Q{SELECT "id", "name" FROM "users"}
-    conditions = [[nil, '12', %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}],
-                  [:integer, '12', %Q{SELECT "id", "name" FROM "users" WHERE "id" = 12}],
-                  [:string, '12', %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}],
-                  [nil, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}],
-                  [:integer, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = 12}],
-                  # [:string, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = 12}]]
-                  [:string, 12, %Q{SELECT "id", "name" FROM "users" WHERE "id" = '12'}]]
+    base_sql = %Q{SELECT id, name FROM users}
+    conditions = [[nil, '12', %Q{SELECT id, name FROM users WHERE id = '12'}],
+                  [:integer, '12', %Q{SELECT id, name FROM users WHERE id = 12}],
+                  [:string, '12', %Q{SELECT id, name FROM users WHERE id = '12'}],
+                  [nil, 12, %Q{SELECT id, name FROM users WHERE id = '12'}],
+                  [:integer, 12, %Q{SELECT id, name FROM users WHERE id = 12}],
+                  # [:string, 12, %Q{SELECT id, name FROM users WHERE id = 12}]]
+                  [:string, 12, %Q{SELECT id, name FROM users WHERE id = '12'}]]
     conditions.each do |data_type, id, expect|
       @report.sql = base_sql
       params = []
@@ -116,8 +116,8 @@ class ReportTest < Minitest::Test
   end
 
   def test_change_sql_with_parameters_and_column_attributes
-    start_sql = %Q{SELECT "id", "name" FROM "users"}
-    end_sql   = %Q{SELECT "id", "name", "email" FROM "users"}
+    start_sql = %Q{SELECT id, name FROM users}
+    end_sql   = %Q{SELECT id, name, email FROM users}
     @report.sql = start_sql
     @report.columns['name'].hide = true
     @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('name',
@@ -133,7 +133,7 @@ class ReportTest < Minitest::Test
   end
 
   def test_query_param_ui_order
-    @report.sql = %Q{SELECT "id", "name" FROM "users"}
+    @report.sql = %Q{SELECT id, name FROM users}
     @report.add_parameter_definition(Crossbeams::Dataminer::QueryParameterDefinition.new('ghi',
                                                             :caption       => 'Ghi',
                                                             :data_type     => :string,
@@ -163,12 +163,12 @@ class ReportTest < Minitest::Test
 
   def test_cast_char_without_limit_override
     @report.sql = "SELECT CAST(id AS character varying) AS char_id FROM users"
-    assert_equal %Q{SELECT "id"::varchar AS char_id FROM "users"}, @report.runnable_sql
+    assert_equal %Q{SELECT id::varchar AS char_id FROM users}, @report.runnable_sql
   end
 
   def test_cast_num_without_limit_override
     @report.sql = "SELECT CAST(id AS numeric) AS num_id FROM users"
-    assert_equal %Q{SELECT "id"::numeric AS num_id FROM "users"}, @report.runnable_sql
+    assert_equal %Q{SELECT id::numeric AS num_id FROM users}, @report.runnable_sql
   end
 
   def test_find_column
@@ -205,6 +205,21 @@ class ReportTest < Minitest::Test
                                                             :ui_priority   => 1,
                                                             :default_value => nil,
                                                             :list_def      => nil)) }
+  end
+
+  def test_count_query
+    queries = {
+      'SELECT id, name AS login FROM users' => 'SELECT count(*) FROM users',
+      'SELECT id, name AS login FROM users WHERE id = 23' => 'SELECT count(*) FROM users WHERE id = 23',
+      'SELECT id, name AS login FROM users WHERE id = 23 ORDER BY id DESC' => 'SELECT count(*) FROM users WHERE id = 23',
+      'SELECT id, name AS login FROM users LIMIT 3 OFFSET 20' => 'SELECT count(*) FROM users'
+    }
+    queries.each do |sql, expect|
+      @report.sql = sql
+      assert_equal sql, @report.runnable_sql
+      assert_equal expect, @report.count_query
+      assert_equal sql, @report.runnable_sql #...
+    end
   end
 
   def test_portable_definition
@@ -295,14 +310,14 @@ class ReportTest < Minitest::Test
   def test_adding_order_by
     @report.sql      = "SELECT id, name FROM users;"
     @report.order_by = 'id DESC'
-    expect           = %Q{SELECT "id", "name" FROM "users" ORDER BY "id" DESC}
+    expect           = %Q{SELECT id, name FROM users ORDER BY id DESC}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_replacing_order_by
     @report.sql      = "SELECT id, name FROM users order by name;"
     @report.order_by = 'id desc'
-    expect           = %Q{SELECT "id", "name" FROM "users" ORDER BY "id" DESC}
+    expect           = %Q{SELECT id, name FROM users ORDER BY id DESC}
     assert_equal expect, @report.runnable_sql
   end
 
@@ -346,49 +361,64 @@ class ReportTest < Minitest::Test
   def test_remove_column
     @report.sql      = "SELECT id, name, email FROM users;"
     @report.remove_columns('email')
-    expect           = %Q{SELECT "id", "name" FROM "users"}
+    expect           = %Q{SELECT id, name FROM users}
+    assert_equal expect, @report.runnable_sql
+
+    @report.sql      = "SELECT u.id, u.name, u.email FROM users u;"
+    @report.remove_columns('email')
+    expect           = %Q{SELECT u.id, u.name FROM users u}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_remove_columns
     @report.sql      = "SELECT id, name, email FROM users;"
     @report.remove_columns(['email', 'id'])
-    expect           = %Q{SELECT "name" FROM "users"}
+    expect           = %Q{SELECT name FROM users}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_remove_grouped_column
     @report.sql      = "SELECT id, name, email, count(xx) FROM users GROUP BY id, name, email;"
     @report.remove_columns('email')
-    expect           = %Q{SELECT "id", "name", count("xx") FROM "users" GROUP BY "id", "name"}
+    expect           = %Q{SELECT id, name, count(xx) FROM users GROUP BY id, name}
+    assert_equal expect, @report.runnable_sql
+
+    @report.sql      = "SELECT u.id, u.name, u.email, count(xx) FROM users u GROUP BY u.id, u.name, u.email;"
+    @report.remove_columns('email')
+    expect           = %Q{SELECT u.id, u.name, count(xx) FROM users u GROUP BY u.id, u.name}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_remove_grouped_columns
     @report.sql      = "SELECT id, name, email, count(xx) FROM users GROUP BY id, name, email;"
     @report.remove_columns(['email', 'id'])
-    expect           = %Q{SELECT "name", count("xx") FROM "users" GROUP BY "name"}
+    expect           = %Q{SELECT name, count(xx) FROM users GROUP BY name}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_remove_ordered_column
     @report.sql      = "SELECT id, name, email FROM users ORDER BY id, name, email;"
     @report.remove_columns('email')
-    expect           = %Q{SELECT "id", "name" FROM "users" ORDER BY "id", "name"}
+    expect           = %Q{SELECT id, name FROM users ORDER BY id, name}
+    assert_equal expect, @report.runnable_sql
+
+    @report.sql      = "SELECT u.id, u.name, u.email FROM users u ORDER BY u.id, u.name, u.email;"
+    @report.remove_columns('email')
+    expect           = %Q{SELECT u.id, u.name FROM users u ORDER BY u.id, u.name}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_remove_ordered_columns
     @report.sql      = "SELECT id, name, email FROM users ORDER BY id, name, email;"
     @report.remove_columns(['email', 'id'])
-    expect           = %Q{SELECT "name" FROM "users" ORDER BY "name"}
+    expect           = %Q{SELECT name FROM users ORDER BY name}
     assert_equal expect, @report.runnable_sql
   end
 
   def test_convert_columns_to_array
     @report.sql      = "SELECT id, name, email FROM users;"
     @report.convert_columns_to_array('combin', ['id', 'name'])
-    expect           = %Q{SELECT ARRAY["id", "name"] AS combin, "email" FROM "users"}
+    expect           = %Q{SELECT ARRAY[id, name] AS combin, email FROM users}
     assert_equal expect, @report.runnable_sql
   end
 
