@@ -20,7 +20,7 @@ module Crossbeams
         @offset                      = nil
         @columns                     = {}
         @sql                         = nil
-        @order                       = nil
+        @order                       = []
         @query_parameter_definitions = []
         @caption                     = caption
         @modified_parse              = nil
@@ -46,7 +46,7 @@ module Crossbeams
       #
       # @param value [String] the SQL query.
       # @return void.
-      def sql=(value) # rubocop:disable Metrics/AbcSize
+      def sql=(value)
         @current_columns = @columns.dup
         @columns.clear
         @applied_params = []
@@ -62,9 +62,8 @@ module Crossbeams
 
         @limit  = limit_from_sql
         @offset = offset_from_sql
-        @order  = original_select['sortClause']
-        @sql    = value
-        # TODO: maybe do a quick deparse and raise exception on failure if SQL cannot be deparsed....
+        @order  = original_select.sort_clause
+        @sql    = value.chomp
       rescue PgQuery::ParseError => e
         raise SyntaxError, e.message
       end
@@ -75,11 +74,11 @@ module Crossbeams
       # @return void.
       def order_by=(value)
         if value.nil? || value == ''
-          @order = nil
+          @order = []
         else
           sql      = "SELECT 1 ORDER BY #{value}"
           pg_order = PgQuery.parse(sql)
-          @order   = tree_select_stmt(pg_order.tree)['sortClause']
+          @order   = tree_select_stmt(pg_order.tree).sort_clause
         end
       end
 
@@ -107,7 +106,7 @@ module Crossbeams
       # @return void.
       def replace_where(params)
         @modified_parse = @parsed_sql.dup
-        modified_select['whereClause'] = nil
+        modified_select.where_clause = nil
         apply_params(params, prepared_tree: true)
       end
 
@@ -130,7 +129,7 @@ module Crossbeams
 
         string_params = params.map(&:to_string)
 
-        if modified_select['whereClause'].nil?
+        if modified_select.where_clause.nil?
           apply_params_without_where_clause(string_params)
         else
           apply_params_with_where_clause(string_params)
@@ -141,7 +140,7 @@ module Crossbeams
       #
       # @return limit [Integer]
       def limit_from_sql
-        limit_clause = original_select['limitCount']
+        limit_clause = original_select.limit_option == :LIMIT_OPTION_DEFAULT ? nil : original_select&.limit_count
         return nil if limit_clause.nil?
 
         get_int_value(limit_clause)
@@ -151,18 +150,20 @@ module Crossbeams
       #
       # @return void.
       def apply_limit
-        modified_select['limitCount'] = if @limit.nil? || @limit.zero?
-                                          nil
-                                        else
-                                          make_int_value_hash(@limit)
-                                        end
+        if @limit.nil? || @limit.zero?
+          modified_select.limit_option = :LIMIT_OPTION_DEFAULT
+          modified_select.limit_count = nil
+        else
+          modified_select.limit_option = :LIMIT_OPTION_COUNT
+          modified_select.limit_count = make_int_value_node(@limit)
+        end
       end
 
       # Extract the OFFSET value from the SQL.
       #
       # @return offset [Integer]
       def offset_from_sql
-        offset_clause = original_select['limitOffset']
+        offset_clause = original_select.limit_option == :LIMIT_OPTION_DEFAULT ? nil : original_select&.limit_offset
         return nil if offset_clause.nil?
 
         get_int_value(offset_clause)
@@ -172,18 +173,20 @@ module Crossbeams
       #
       # @return void.
       def apply_offset
-        modified_select['limitOffset'] = if @offset.nil? || @offset.zero?
-                                           nil
-                                         else
-                                           make_int_value_hash(@offset)
-                                         end
+        if @offset.nil? || @offset.zero?
+          modified_select.limit_offset = nil
+          modified_select.limit_option = :LIMIT_OPTION_DEFAULT if @limit.nil? || @limit.zero?
+        else
+          modified_select.limit_option = :LIMIT_OPTION_COUNT
+          modified_select.limit_offset = make_int_value_node(@offset)
+        end
       end
 
       # Take the order attribute and apply it to the SQL's ORDER BY clause.
       #
       # @return void.
       def apply_order
-        modified_select['sortClause'] = @order
+        modified_select.sort_clause = @order
       end
 
       # The applied parameters as an array of strings.
@@ -197,7 +200,7 @@ module Crossbeams
       #
       # @return [String] the parsetree.
       def show_tree
-        @modified_parse.tree[0].inspect
+        (@modified_parse || @parsed_sql).tree.stmts[0].inspect
       end
 
       # The SQL with parameters applied so that it can be run against a database.
@@ -223,8 +226,24 @@ module Crossbeams
         sql.tr('"', '')
       end
 
+      # Take the report's SQL and create a COUNT(*) query based on the same TABLE/FROM/JOINS/WHERE
+      #
+      # @return [String] runnable SQL COUNT query
+      def count_query # rubocop:disable Metrics/AbcSize
+        parsed_count = [PgQuery::Node.from(PgQuery::ResTarget.new(val: PgQuery::Node.from(PgQuery::FuncCall.new(funcname: [PgQuery::Node.from(PgQuery::String.new(str: 'count'))], agg_star: true))))]
+        parse = PgQuery.parse(runnable_sql)
+        tree = tree_select_stmt(parse.tree)
+        tree.limit_option = :LIMIT_OPTION_DEFAULT
+        tree.limit_count = nil
+        tree.limit_offset = nil
+        tree.sort_clause&.replace([])
+        tree.target_list.replace(parsed_count)
+        parse.deparse
+      end
+
       # Get a column by its +name+.
       #
+      # @param name [String] the column name.
       # @return [Column] the column with matching name.
       def column(name)
         @columns[name]
@@ -339,7 +358,7 @@ module Crossbeams
         end
 
         ar_tree = array_tree_for(new_name, array_select)
-        original_select[PgQuery::TARGET_LIST_FIELD].unshift(ar_tree)
+        original_select.target_list.unshift(ar_tree)
       end
 
       private
@@ -350,7 +369,7 @@ module Crossbeams
       end
 
       def tree_select_stmt(tree)
-        tree[0][PgQuery::RAW_STMT][PgQuery::STMT_FIELD][PgQuery::SELECT_STMT]
+        tree.stmts[0].stmt.select_stmt
 
         # -------------------------------------------------------------------------
         # BELOW attempt to handle UNION queries, but this breaks down elsewhere, so
@@ -368,24 +387,25 @@ module Crossbeams
 
       def array_tree_for(new_name, array_select)
         pg_temp = PgQuery.parse("SELECT #{array_select} FROM temp")
-        tree_select_stmt(pg_temp.tree)[PgQuery::TARGET_LIST_FIELD].select { |a| a['ResTarget']['name'] == new_name }.first
+        # tree_select_stmt(pg_temp.tree)[PgQuery::TARGET_LIST_FIELD].select { |a| a['ResTarget']['name'] == new_name }.first
+        tree_select_stmt(pg_temp.tree).target_list.select { |a| a.res_target.name == new_name }.first
       end
 
       def remove_column(column)
-        original_select[PgQuery::TARGET_LIST_FIELD].reject! do |col|
-          col[PgQuery::RES_TARGET] == column.parse_path
+        original_select.target_list.reject! do |col|
+          col.res_target == column.parse_path
         end
       end
 
       def remove_sorted_column(column)
-        (original_select['sortClause'] || []).reject! do |order|
-          order['SortBy']['node']['ColumnRef']['fields'].first['String']['str'] == column.namespaced_name
+        original_select.sort_clause.reject! do |order|
+          order.sort_by.node.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
         end
       end
 
       def remove_grouped_column(column)
-        (original_select['groupClause'] || []).reject! do |group|
-          group['ColumnRef']['fields'].first['String']['str'] == column.namespaced_name
+        original_select.group_clause.reject! do |group|
+          group.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
         end
       end
 
@@ -402,8 +422,8 @@ module Crossbeams
       end
 
       def create_and_validate_columns
-        original_select[PgQuery::TARGET_LIST_FIELD].each_with_index do |target, index|
-          col = Column.create_from_parse(index + 1, target[PgQuery::RES_TARGET])
+        original_select.target_list.each_with_index do |target, index|
+          col = Column.create_from_parse(index + 1, target.res_target)
           raise ArgumentError, %(SQL has duplicate columns with name: "#{col.name}") unless @columns[col.name].nil?
 
           previous_column = @current_columns[col.name]
@@ -413,32 +433,32 @@ module Crossbeams
 
       def validate_select_star!
         # one of the columns is "*"...
-        raise ArgumentError, 'Cannot have * as a column selector' if @columns.keys.any? { |a| a.include?(PgQuery::A_STAR) }
+        raise ArgumentError, 'Cannot have * as a column selector' if @columns.keys.any? { |a| a == 'pgq_a_star' }
       end
 
-      def make_int_value_hash(int)
-        { PgQuery::A_CONST => { 'val' => { PgQuery::INTEGER => { 'ival' => int } } } }
+      def make_int_value_node(int)
+        PgQuery::Node.from(PgQuery::A_Const.new(val: PgQuery::Node.from(PgQuery::Integer.new(ival: int))))
       end
 
-      def get_int_value(hash)
-        hash[PgQuery::A_CONST]['val'][PgQuery::INTEGER]['ival']
+      def get_int_value(node)
+        node.a_const.val.integer.ival
       end
 
       def apply_params_without_where_clause(string_params)
         sql = 'SELECT 1 WHERE ' << string_params.join(' AND ')
         pg_where = PgQuery.parse(sql)
-        modified_select['whereClause'] = tree_select_stmt(pg_where.tree)['whereClause']
+        modified_select.where_clause = tree_select_stmt(pg_where.tree).where_clause
       end
 
       def apply_params_with_where_clause(string_params)
         pg_where     = plain_sql_loaded_with_current_where
-        pg_new_where = PgQuery.parse(pg_where.deparse + ' AND ' + string_params.join(' AND '))
-        modified_select['whereClause'] = tree_select_stmt(pg_new_where.tree)['whereClause']
+        pg_new_where = PgQuery.parse("#{pg_where.deparse} AND #{string_params.join(' AND ')}")
+        modified_select.where_clause = tree_select_stmt(pg_new_where.tree).where_clause
       end
 
       def plain_sql_loaded_with_current_where
         pg_where = PgQuery.parse('SELECT 1')
-        tree_select_stmt(pg_where.tree)['whereClause'] = modified_select['whereClause']
+        tree_select_stmt(pg_where.tree).where_clause = modified_select.where_clause
         pg_where
       end
 
