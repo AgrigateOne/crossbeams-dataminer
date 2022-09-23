@@ -4,7 +4,7 @@ module Crossbeams
       attr_accessor :data_type
       attr_reader :values
 
-      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in is_null not_null match_or_null].freeze
+      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in in_or_null is_null not_null match_or_null].freeze
 
       OPERATORS = {
         '=' => 'equals',
@@ -18,6 +18,7 @@ module Crossbeams
         'ends_with' => 'ends with',
         'contains' => 'contains',
         'in' => 'is any of',
+        'in_or_null' => 'is any of or is blank',
         'match_or_null' => 'is equal to or blank',
         'is_null' => 'is blank',
         'not_null' => 'is not blank'
@@ -95,7 +96,7 @@ module Crossbeams
       end
 
       def check_other_values
-        'Parameter must have a value' if @values.first.nil?  # TODO: Maybe need to be able to say "... WHERE xyz <> ''; " ????
+        'Parameter must have a value' if @values.first.nil? && @operator != 'in_or_null'  # TODO: Maybe need to be able to say "... WHERE xyz <> ''; " ????
       end
 
       def sql_value_from_operator(value)

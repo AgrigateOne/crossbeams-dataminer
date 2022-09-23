@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- New operator `in_or_null`. Will resolve to `(col IN (values) OR col IS NULL)`. IF there are no values provided, it will resolve to `col IS NULL`.
 ### Changed
 ### Fixed
 

@@ -80,6 +80,34 @@ class QueryParameterTest < Minitest::Test
     assert_equal "col IN ('1','2','3')", param.to_string
   end
 
+  def test_in_or_null
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in_or_null', [1,2,3], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "(col IN (1,2,3) OR col IS NULL)", param.to_string
+  end
+
+  def test_in_or_null_no_params
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in_or_null', [], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col IS NULL", param.to_string
+
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in_or_null', nil, :string)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col IS NULL", param.to_string
+  end
+
+  def test_in_or_null_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in_or_null', [1,2,3], :integer)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col is any of 1, 2 or 3 or is blank", param.to_text
+  end
+
+  def test_in_or_null_str
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('in_or_null', %w[1 2 3], :string)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "(col IN ('1','2','3') OR col IS NULL)", param.to_string
+  end
+
   def test_empty_in
     opval1 = Crossbeams::Dataminer::OperatorValue.new('in', [], :integer)
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)

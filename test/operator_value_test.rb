@@ -4,7 +4,7 @@ class OperatorValueTest < Minitest::Test
 
 
   def test_valid_operators
-    valids = %w{= >= <= <> > < between starts_with ends_with contains in not_null is_null match_or_null}
+    valids = %w{= >= <= <> > < between starts_with ends_with contains in in_or_null not_null is_null match_or_null}
     invalids = %w{12 www isnt == like}
     valids.each do |op|
       Crossbeams::Dataminer::OperatorValue.new(op, [1,2])
@@ -16,7 +16,7 @@ class OperatorValueTest < Minitest::Test
   end
 
   def test_operator_for_sql
-    same_ops           = %w{= >= <= <> > < between in match_or_null}
+    same_ops           = %w{= >= <= <> > < between in in_or_null match_or_null}
     ops                = Hash[same_ops.zip same_ops]
     ops['is_null']     = 'is'
     ops['not_null']    = 'is not'
@@ -52,6 +52,22 @@ class OperatorValueTest < Minitest::Test
       opval = Crossbeams::Dataminer::OperatorValue.new(in_op, opts[:from])
       val = opval.values_for_sql
       assert_equal opts[:val], val
+    end
+  end
+
+  def test_values_for_sql_by_type
+    [
+      ['123', nil, ["'123'"]],
+      ['123', :string, ["'123'"]],
+      [['123', '456'], :string, ["'123'", "'456'"]],
+      ['123', :integer, [123]],
+      [123, :integer, [123]],
+      [['123', 456], :integer, [123, 456]],
+      ['123.45', :number, [123.45]],
+    ].each do |in_val, datatype, expect|
+      opval = Crossbeams::Dataminer::OperatorValue.new('=', in_val, datatype)
+      val = opval.values_for_sql
+      assert_equal expect, val
     end
   end
 

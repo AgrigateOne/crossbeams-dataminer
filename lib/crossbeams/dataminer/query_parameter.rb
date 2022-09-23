@@ -15,12 +15,18 @@ module Crossbeams
       end
 
       NOT_NULL_TEST = { true => 'IS NOT NULL', false => 'IS NULL' }.freeze
-      def to_string
+      def to_string # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
         operator = @op_val.operator_for_sql
         values   = @op_val.values_for_sql
 
         if operator.match(MATCH_NULL_TEST)
           "(#{@qualified_column_name} = #{values.first} OR #{@qualified_column_name} IS NULL)"
+        elsif operator == 'in_or_null'
+          if values.empty?
+            "#{@qualified_column_name} IS NULL"
+          else
+            "(#{@qualified_column_name} IN (#{values.map { |v| v }.join(',')}) OR #{@qualified_column_name} IS NULL)"
+          end
         elsif values.first.to_s.match?(NULL_TEST)
           op_type = operator.match?(NOT_TEST) ? true : false
           "#{@qualified_column_name} #{NOT_NULL_TEST[op_type]}"
@@ -42,12 +48,18 @@ module Crossbeams
         end
       end
 
-      def to_text # rubocop:disable Metrics/AbcSize
+      def to_text # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
         operator = @op_val.operator_for_text
         values   = @op_val.values_for_sql
 
         if operator == 'is equal to or blank'
           "#{unqualified_column_name} is #{values.first} or blank"
+        elsif operator == 'is any of or is blank'
+          if values.empty?
+            "#{unqualified_column_name} is blank"
+          else
+            "#{unqualified_column_name} is any of #{values.map { |v| v }.join(', ').sub(", #{values.last}", " or #{values.last}")} or is blank"
+          end
         elsif values.first.to_s.match?(NULL_TEST)
           "#{unqualified_column_name} #{operator}"
         elsif @op_val.data_type == :boolean
