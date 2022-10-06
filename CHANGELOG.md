@@ -10,6 +10,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 - New operator `in_or_null`. Will resolve to `(col IN (values) OR col IS NULL)`. IF there are no values provided, it will resolve to `col IS NULL`.
 ### Changed
 ### Fixed
+- Loading a persisted report will ignore any extra columns
 
 ## [1.0.0] - 2022-09-21
 ### Changed

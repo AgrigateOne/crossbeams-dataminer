@@ -463,7 +463,7 @@ module Crossbeams
       end
 
       def update_columns_from_hash(hash)
-        hash[:columns].each { |name, column| @columns[name].modify_from_hash(column) }
+        hash[:columns].each { |name, column| @columns[name]&.modify_from_hash(column) }
       end
 
       def update_query_parameter_definitions_from_hash(hash)
