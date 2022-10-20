@@ -41,6 +41,11 @@ class ReportTest < Minitest::Test
     params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', 'Fred'))
     @report.replace_where(params)
     assert_equal %Q{SELECT id, name FROM users WHERE name = 'Fred'}, @report.runnable_sql
+
+    params = []
+    params << Crossbeams::Dataminer::QueryParameter.new('name', Crossbeams::Dataminer::OperatorValue.new('=', "O'Reilly"))
+    @report.replace_where(params)
+    assert_equal %Q{SELECT id, name FROM users WHERE name = 'O''Reilly'}, @report.runnable_sql
   end
 
   def test_apply_no_params
