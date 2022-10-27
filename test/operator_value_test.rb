@@ -71,6 +71,21 @@ class OperatorValueTest < Minitest::Test
     end
   end
 
+  def test_strings_including_quotes
+    [
+      ['=', "O'Reilly", nil, ["'O''Reilly'"]],
+      ['=', 123, nil, ["'123'"]],
+      ['in', ["O'Reilly", 'Smith'], nil, ["'O''Reilly'", "'Smith'"]],
+      ['starts_with', "O'R", nil, ["'O''R%'"]],
+      ['contains', "O'R", nil, ["'%O''R%'"]],
+      ['ends_with', "O'R", nil, ["'%O''R'"]]
+    ].each do |op, in_val, datatype, expect|
+      opval = Crossbeams::Dataminer::OperatorValue.new(op, in_val, datatype)
+      val = opval.values_for_sql
+      assert_equal expect, val
+    end
+  end
+
   def test_invalid_between_operator
     assert_raises(ArgumentError) { Crossbeams::Dataminer::OperatorValue.new('between', '2015-08-01') }
     assert_raises(ArgumentError) { Crossbeams::Dataminer::OperatorValue.new('between', ['2015-08-01', '']) }
