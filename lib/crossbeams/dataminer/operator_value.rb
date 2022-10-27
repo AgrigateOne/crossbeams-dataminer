@@ -102,11 +102,11 @@ module Crossbeams
       def sql_value_from_operator(value)
         case @operator
         when 'starts_with'
-          "'#{value}%'"
+          "'#{value.to_s.gsub("'", "''")}%'"
         when 'ends_with'
-          "'%#{value}'"
+          "'%#{value.to_s.gsub("'", "''")}'"
         when 'contains'
-          "'%#{value}%'"
+          "'%#{value.to_s.gsub("'", "''")}%'"
         when 'not_null', 'is_null'
           'NULL'
         else
@@ -121,7 +121,7 @@ module Crossbeams
         when :number
           value.to_f
         else
-          "'#{value}'"
+          "'#{value.to_s.gsub("'", "''")}'"
         end
       end
     end
