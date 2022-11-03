@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [2.1.0] - 2022-11-03
+### Changed
+- Upgrade `pg_query` to version 2.2.0
+
 ## [2.0.0] - 2022-10-27
 ### Added
 - New operator `in_or_null`. Will resolve to `(col IN (values) OR col IS NULL)`. IF there are no values provided, it will resolve to `col IS NULL`.
