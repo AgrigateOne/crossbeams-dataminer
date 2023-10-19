@@ -19,7 +19,7 @@ module Crossbeams
 
       def list_def=(value)
         @ordered_list = false
-        if value&.is_a?(String)
+        if value.is_a?(String)
           raise ArgumentError, 'List definition SQL MUST be a SELECT' if value.match?(/insert |update |delete /i)
 
           @ordered_list = value.match?(/order\s+by/i)
@@ -43,7 +43,7 @@ module Crossbeams
         "PARAM COL: #{@column}: CAPTION: #{@caption} TYPE: #{@data_type} UI: #{@control_type} DEFAULT: #{@default_value}"
       end
 
-      def to_hash(with_list_values = false)
+      def to_hash(with_list_values: false)
         xtra = with_list_values ? { list_values: alter_it(@list_values) } : {}
 
         { column: @column,             caption: @caption,             data_type: @data_type,
@@ -52,8 +52,7 @@ module Crossbeams
       end
 
       def self.create_from_hash(hash)
-        new = self.new(hash[:column], hash)
-        new
+        new(hash[:column], hash)
       end
 
       def build_list
@@ -82,9 +81,10 @@ module Crossbeams
       end
 
       def calculate_values_from_definition
-        if @list_def.is_a? Array
+        case @list_def
+        when Array
           @list_values = @list_def.map { |a| a.is_a?(Hash) ? a.values : a }
-        elsif @list_def.is_a? Hash
+        when Hash
           @list_values = @list_def.map { |k, v| [k, v] }
         end
       end

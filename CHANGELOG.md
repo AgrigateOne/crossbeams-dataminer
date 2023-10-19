@@ -10,6 +10,16 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [2.2.0] - 2023-10-19
+### Added
+- Column attribute `funcname` holds the name of the function call (if any). e.g. `sum`
+- Column method `aggregate_function?` returns true if the column is a sum, count, min, max or avg aggregate
+- Report method `summarised_query?` returns true if the report has a GROUP BY clause
+- Report method `non_aggregate_columns` returns an array of columns that are not aggregates
+- Report method `aggregate_columns` returns an array of columns that are aggregates
+- Report method `change_column_selection` takes arrays of non-aggregate and aggregate columns and removes any not included from the report's columns list and the group by clause
+- Report sets the `summarised` attribute when represented in a hash
+
 ## [2.1.0] - 2022-11-03
 ### Changed
 - Upgrade `pg_query` to version 2.2.0
