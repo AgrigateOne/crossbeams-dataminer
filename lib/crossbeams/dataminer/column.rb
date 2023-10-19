@@ -4,7 +4,7 @@ module Crossbeams
       attr_accessor :name,      :sequence_no, :caption,   :namespaced_name, :data_type,
                     :width,     :format,      :hide,      :groupable,       :group_by_seq,
                     :group_sum, :group_avg,   :group_min, :group_max,       :parse_path,
-                    :pinned
+                    :pinned,    :funcname
 
       def initialize(sequence_no, parse_path, options = {})
         @name            = get_name(parse_path)
@@ -13,6 +13,7 @@ module Crossbeams
         @parse_path      = parse_path
         @caption         = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
         @data_type       = options.fetch(:data_type, :string)
+        @funcname        = get_funcname(parse_path)
 
         %i[width format group_by_seq pinned].each do |att|
           instance_variable_set("@#{att}", options[att])
@@ -77,6 +78,13 @@ module Crossbeams
         @res.to_a
       end
 
+      # Is this column an aggregate function? (sum, min, max, count, avg)
+      #
+      # @return Boolean
+      def aggregate_function?
+        %w[sum avg min max count].include?(funcname)
+      end
+
       private
 
       def get_col_results(case_expr) # rubocop:disable Metrics/AbcSize
@@ -126,6 +134,12 @@ module Crossbeams
       def get_namespaced_name(restarget)
         # Calculated fields or PgQuery::FUNC_CALL can't be used as a query parameter
         restarget.val.column_ref.fields.map { |f| field_parse(f) }.join('.') if restarget.val.column_ref
+      end
+
+      def get_funcname(restarget)
+        return nil unless restarget.val.func_call
+
+        restarget.val.func_call.funcname.last.string.str
       end
 
       # Return field node.

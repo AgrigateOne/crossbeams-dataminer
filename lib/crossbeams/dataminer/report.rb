@@ -212,6 +212,44 @@ module Crossbeams
         (@modified_parse || @parsed_sql).deparse # nil, :sql || nil, mssql
       end
 
+      # Is this a summarised query? i.e. it has a GROUP BY clause?
+      #
+      # @return [Boolean] is this a summarised query?
+      def summarised_query?
+        tree = tree_select_stmt((@modified_parse || @parsed_sql).tree)
+        !tree.group_clause.empty?
+      end
+
+      # List of columns that are not aggregated in the SELECT clause
+      #
+      # @return [Array<Column>] the non-aggregate columns ordered by sequence number.
+      def non_aggregate_columns
+        @columns.map { |_, v| v }.reject(&:aggregate_function?).sort_by(&:sequence_no)
+      end
+
+      # List of aggregate columns (sum, count, min, max, avg)
+      #
+      # @return [Array<Column>] the aggregate columns ordered by sequence number.
+      def aggregate_columns
+        @columns.map { |_, v| v }.select(&:aggregate_function?).sort_by(&:sequence_no)
+      end
+
+      # Change the select clause to a subset of columns
+      #
+      # @param selects [Array<Column>] the non-aggregate columns to use
+      # @param aggregates [Array<Column>] the aggregate columns to use
+      # @return [void]
+      def change_column_selection(selects, aggregates)
+        seqs = selects.map(&:sequence_no) + aggregates.map(&:sequence_no)
+        ordered_columns.each do |column|
+          next if seqs.include?(column.sequence_no)
+
+          remove_column(column)
+          remove_sorted_column(column)
+          remove_grouped_column(column)
+        end
+      end
+
       # The SQL with parameters applied so that it can be run against a database.
       # Changes the delimiters for MS SQL Server to avoid problems with double-quoted identifiers.
       #
@@ -263,6 +301,7 @@ module Crossbeams
       def to_hash
         hash = {}
         %i[caption sql limit offset external_settings].each { |k| hash[k] = send(k) }
+        hash[:summarised] = summarised_query?
         hash[:columns] = {}
         columns.each { |name, col| hash[:columns][name] = col.to_hash }
         hash[:query_parameter_definitions] = query_parameter_definitions.map(&:to_hash)
@@ -403,9 +442,13 @@ module Crossbeams
         end
       end
 
-      def remove_grouped_column(column)
+      def remove_grouped_column(column) # rubocop:disable Metrics/AbcSize
         original_select.group_clause.reject! do |group|
-          group.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
+          if group.type_cast
+            group.type_cast.arg.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
+          else
+            group.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
+          end
         end
       end
 

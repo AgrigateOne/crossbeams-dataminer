@@ -276,6 +276,18 @@ class ReportTest < Minitest::Test
     assert_equal 'changed', @report.external_settings[:tester]
   end
 
+  def test_summarised
+    @report.sql = "SELECT type, COUNT(id) AS cnt FROM users GROUP BY type;"
+    assert @report.summarised_query?
+    portable = @report.to_hash
+    assert portable[:summarised]
+
+    @report.sql = "SELECT type, id AS cnt FROM users;"
+    refute @report.summarised_query?
+    portable = @report.to_hash
+    refute portable[:summarised]
+  end
+
   def test_yaml_persistor
     @report.sql = "SELECT id, name AS login FROM users;"
     @report.columns['id'].sequence_no = 3
