@@ -19,6 +19,8 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 - Report method `aggregate_columns` returns an array of columns that are aggregates
 - Report method `change_column_selection` takes arrays of non-aggregate and aggregate columns and removes any not included from the report's columns list and the group by clause
 - Report sets the `summarised` attribute when represented in a hash
+### Fixed
+- Matching columns to group clause was not 100%. Introduced column fingerprint to make this easier
 
 ## [2.1.0] - 2022-11-03
 ### Changed

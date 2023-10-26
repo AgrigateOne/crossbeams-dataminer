@@ -4,9 +4,9 @@ module Crossbeams
       attr_accessor :name,      :sequence_no, :caption,   :namespaced_name, :data_type,
                     :width,     :format,      :hide,      :groupable,       :group_by_seq,
                     :group_sum, :group_avg,   :group_min, :group_max,       :parse_path,
-                    :pinned,    :funcname
+                    :pinned,    :funcname,    :col_fingerprint
 
-      def initialize(sequence_no, parse_path, options = {})
+      def initialize(sequence_no, parse_path, options = {}) # rubocop:disable Metrics/AbcSize
         @name            = get_name(parse_path)
         @namespaced_name = get_namespaced_name(parse_path)
         @sequence_no     = sequence_no
@@ -14,6 +14,12 @@ module Crossbeams
         @caption         = name.sub(/_id\z/, '').tr('_', ' ').sub(/\A\w/, &:upcase)
         @data_type       = options.fetch(:data_type, :string)
         @funcname        = get_funcname(parse_path)
+        build_fingerprint
+        # puts "#{name} - FP: #{col_fingerprint}"
+        if col_fingerprint.empty?
+          puts "Crossbeams::Datminer::Column - unable to build a fingerprint for: #{name}..."
+          p col_node
+        end
 
         %i[width format group_by_seq pinned].each do |att|
           instance_variable_set("@#{att}", options[att])
@@ -85,6 +91,17 @@ module Crossbeams
         %w[sum avg min max count].include?(funcname)
       end
 
+      def match_node?(node)
+        @fingerprint = []
+        calc_fingerprint(node)
+        group_fingerprint = @fingerprint.join('.')
+        group_fingerprint == col_fingerprint
+      end
+
+      def col_node
+        parse_path.val
+      end
+
       private
 
       def get_col_results(case_expr) # rubocop:disable Metrics/AbcSize
@@ -140,6 +157,38 @@ module Crossbeams
         return nil unless restarget.val.func_call
 
         restarget.val.func_call.funcname.last.string.str
+      end
+
+      def build_fingerprint
+        @fingerprint = []
+        calc_fingerprint(col_node)
+        @col_fingerprint = @fingerprint.join('.')
+      end
+
+      # Take a node and combine string and int parts of its tree to generate a "fingerprint".
+      def calc_fingerprint(node) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
+        %i[type_cast case_expr case_when rexpr kind lexpr a_expr
+           a_const val arg expr func_call result column_ref coalesce_expr].each do |meth|
+          calc_fingerprint(node.send(meth)) if node.respond_to?(meth) && !node.send(meth).nil?
+        end
+
+        node.list.each { |f| calc_fingerprint(f) } if node.respond_to?(:list) && node.list
+        node.funcname.each { |f| calc_fingerprint(f) } if node.respond_to?(:funcname) && node.funcname
+        node.names.each { |n| calc_fingerprint(n) } if node.respond_to?(:names) && node.names
+        node.args.each { |n| calc_fingerprint(n) } if node.respond_to?(:args) && node.args
+        node.fields.each { |n| calc_fingerprint(n) } if node.respond_to?(:fields) && node.fields
+
+        @fingerprint << node.string.str if node.respond_to?(:string) && node.string
+        @fingerprint << node.integer.ival if node.respond_to?(:integer) && node.integer
+        @fingerprint << '*' if node.respond_to?(:a_star) && node.a_star
+
+        return unless node.respond_to?(:name) && node.name
+
+        if node.name.is_a?(Google::Protobuf::RepeatedField)
+          node.name.each { |f| calc_fingerprint(f) }
+        else
+          calc_fingerprint(node.name)
+        end
       end
 
       # Return field node.

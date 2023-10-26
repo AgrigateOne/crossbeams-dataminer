@@ -442,13 +442,9 @@ module Crossbeams
         end
       end
 
-      def remove_grouped_column(column) # rubocop:disable Metrics/AbcSize
+      def remove_grouped_column(column)
         original_select.group_clause.reject! do |group|
-          if group.type_cast
-            group.type_cast.arg.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
-          else
-            group.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
-          end
+          column.match_node?(group)
         end
       end
 
