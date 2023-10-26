@@ -172,7 +172,14 @@ module Crossbeams
           calc_fingerprint(node.send(meth)) if node.respond_to?(meth) && !node.send(meth).nil?
         end
 
-        node.list.each { |f| calc_fingerprint(f) } if node.respond_to?(:list) && node.list
+        if node.respond_to?(:list) && node.list
+          if node.list.respond_to?(:each)
+            node.list.each { |f| calc_fingerprint(f) }
+          else
+            calc_fingerprint(node.list)
+          end
+        end
+        node.items.each { |f| calc_fingerprint(f) } if node.respond_to?(:items) && node.items
         node.funcname.each { |f| calc_fingerprint(f) } if node.respond_to?(:funcname) && node.funcname
         node.names.each { |n| calc_fingerprint(n) } if node.respond_to?(:names) && node.names
         node.args.each { |n| calc_fingerprint(n) } if node.respond_to?(:args) && node.args
@@ -189,6 +196,10 @@ module Crossbeams
         else
           calc_fingerprint(node.name)
         end
+      rescue StandardError => e
+        puts "Crossbeams::Dataminer::Column - fingerprinting failed: #{e.message}"
+        puts "COL: #{name}"
+        p node
       end
 
       # Return field node.
