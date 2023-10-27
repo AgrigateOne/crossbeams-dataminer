@@ -172,13 +172,15 @@ module Crossbeams
         @fingerprint << '*' if node.respond_to?(:a_star) && node.a_star
         @fingerprint << node.nulltesttype if node.respond_to?(:nulltesttype) && node.nulltesttype
         @fingerprint << node.boolop if node.respond_to?(:boolop) && node.boolop
+        @fingerprint << node.booltesttype if node.respond_to?(:booltesttype) && node.booltesttype
         @fingerprint << node.sub_link_type if node.respond_to?(:sub_link_type) && node.sub_link_type
         @fingerprint << node.relname if node.respond_to?(:relname) && node.relname
         @fingerprint << node.limit_option if node.respond_to?(:limit_option) && node.limit_option
+        @fingerprint << 'CONST' if node.respond_to?(:a_const) && node.a_const
 
-        %i[type_cast case_expr case_when rexpr kind lexpr a_expr
-           a_const val arg expr func_call result column_ref
-           coalesce_expr null_test type_name bool_expr sub_link
+        %i[type_cast case_expr case_when rexpr kind lexpr a_expr a_array_expr
+           a_const val arg expr func_call result column_ref a_indirection a_indices
+           coalesce_expr null_test type_name bool_expr boolean_test sub_link
            subselect select_stmt res_target range_var where_clause].each do |meth|
           calc_fingerprint(node.send(meth)) if node.respond_to?(meth) && !node.send(meth).nil?
         end
@@ -195,6 +197,8 @@ module Crossbeams
         node.names.each { |n| calc_fingerprint(n) } if node.respond_to?(:names) && node.names
         node.args.each { |n| calc_fingerprint(n) } if node.respond_to?(:args) && node.args
         node.fields.each { |n| calc_fingerprint(n) } if node.respond_to?(:fields) && node.fields
+        node.indirection.each { |n| calc_fingerprint(n) } if node.respond_to?(:indirection) && node.indirection
+        node.elements.each { |n| calc_fingerprint(n) } if node.respond_to?(:elements) && node.elements
         node.target_list.each { |n| calc_fingerprint(n) } if node.respond_to?(:target_list) && node.target_list
         node.from_clause.each { |n| calc_fingerprint(n) } if node.respond_to?(:from_clause) && node.from_clause
         node.distinct_clause.each { |n| calc_fingerprint(n) } if node.respond_to?(:distinct_clause) && node.distinct_clause
