@@ -123,6 +123,7 @@ module Crossbeams
       end
 
       def apply_case_value(node) # rubocop:disable Metrics/AbcSize
+        return field_parse(node.column_ref.fields.last) if node.respond_to?(:column_ref) && node.column_ref
         return if node.a_const.val.null
 
         val = if node.a_const.val.integer

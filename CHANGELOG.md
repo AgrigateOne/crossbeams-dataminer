@@ -9,6 +9,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+- Prevent exception when parsing a CASE that returns the value of a column instead of a const
 
 ## [2.2.0] - 2023-10-19
 ### Added
