@@ -155,7 +155,7 @@ module Crossbeams
           modified_select.limit_count = nil
         else
           modified_select.limit_option = :LIMIT_OPTION_COUNT
-          modified_select.limit_count = make_int_value_node(@limit)
+          modified_select.limit_count = make_int_value_node(@limit, 'Limit')
         end
       end
 
@@ -178,7 +178,7 @@ module Crossbeams
           modified_select.limit_option = :LIMIT_OPTION_DEFAULT if @limit.nil? || @limit.zero?
         else
           modified_select.limit_option = :LIMIT_OPTION_COUNT
-          modified_select.limit_offset = make_int_value_node(@offset)
+          modified_select.limit_offset = make_int_value_node(@offset, 'Offset')
         end
       end
 
@@ -475,8 +475,10 @@ module Crossbeams
         raise ArgumentError, 'Cannot have * as a column selector' if @columns.keys.any? { |a| a == 'pgq_a_star' }
       end
 
-      def make_int_value_node(int)
+      def make_int_value_node(int, type)
         PgQuery::Node.from(PgQuery::A_Const.new(val: PgQuery::Node.from(PgQuery::Integer.new(ival: int))))
+      rescue RangeError
+        raise ArgumentError, "#{int} is not a valid number for #{type}"
       end
 
       def get_int_value(node)
