@@ -1,11 +1,12 @@
 module Crossbeams
   module Dataminer
     class QueryParameter
-      NULL_TEST       = /NULL/i.freeze
-      NOT_TEST        = /NOT/i.freeze
-      BETWEEN_TEST    = /BETWEEN/i.freeze
-      IN_TEST         = /IN/i.freeze
-      MATCH_NULL_TEST = /MATCH_OR_NULL/i.freeze
+      NULL_TEST       = /NULL/i
+      NOT_TEST        = /NOT/i
+      BETWEEN_TEST    = /BETWEEN/i
+      IN_TEST         = /IN/i
+      MATCH_NULL_TEST = /MATCH_OR_NULL/i
+      ANY_TEST        = /ANY/i
 
       def initialize(namespaced_name, op_val, options = {})
         @qualified_column_name = namespaced_name
@@ -34,6 +35,8 @@ module Crossbeams
           case operator
           when BETWEEN_TEST
             "#{@qualified_column_name} BETWEEN #{values[0]} AND #{values[1]}"
+          when ANY_TEST
+            "#{values.first}=ANY(#{@qualified_column_name})"
           when IN_TEST
             if values.empty?
               '(1 = 2)'

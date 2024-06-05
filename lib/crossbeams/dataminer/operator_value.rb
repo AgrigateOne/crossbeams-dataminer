@@ -4,7 +4,7 @@ module Crossbeams
       attr_accessor :data_type
       attr_reader :values
 
-      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in in_or_null is_null not_null match_or_null].freeze
+      VALID_OPERATORS = %w[= >= <= <> > < between starts_with ends_with contains in in_or_null is_null not_null match_or_null any].freeze
 
       OPERATORS = {
         '=' => 'equals',
@@ -21,7 +21,8 @@ module Crossbeams
         'in_or_null' => 'is any of or is blank',
         'match_or_null' => 'is equal to or blank',
         'is_null' => 'is blank',
-        'not_null' => 'is not blank'
+        'not_null' => 'is not blank',
+        'any' => 'array contains'
       }.freeze
 
       def initialize(operator, values = nil, data_type = nil)
@@ -116,7 +117,7 @@ module Crossbeams
 
       def sql_value_from_data_type(value)
         case @data_type
-        when :integer
+        when :integer, :integer_array
           value.to_i
         when :number
           value.to_f

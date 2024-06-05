@@ -6,6 +6,7 @@ require 'crossbeams/dataminer/query_parameter_definition'
 require 'crossbeams/dataminer/operator_value'
 require 'crossbeams/dataminer/yaml_persistor'
 require 'pg_query'
+require 'set'
 require 'yaml'
 
 module Crossbeams

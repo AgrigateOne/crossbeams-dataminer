@@ -120,6 +120,30 @@ class QueryParameterTest < Minitest::Test
     assert_equal "col check is ignored", param.to_text
   end
 
+  def test_any_in_array
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('any', 1, :integer_array)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "1=ANY(col)", param.to_string
+  end
+
+  def test_any_in_array_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('any', 1, :integer_array)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col array contains 1", param.to_text
+  end
+
+  def test_any_in_str_array
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('any', 'AA', :string_array)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "'AA'=ANY(col)", param.to_string
+  end
+
+  def test_any_in_str_array_to_text
+    opval1 = Crossbeams::Dataminer::OperatorValue.new('any', 'AA', :string_array)
+    param = Crossbeams::Dataminer::QueryParameter.new('col', opval1)
+    assert_equal "col array contains 'AA'", param.to_text
+  end
+
   def test_can_create_from_definition
     opval = Crossbeams::Dataminer::OperatorValue.new('=', 'FRED')
     param = Crossbeams::Dataminer::QueryParameter.new('col', opval)
