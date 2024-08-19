@@ -124,17 +124,25 @@ module Crossbeams
 
       def apply_case_value(node) # rubocop:disable Metrics/AbcSize
         return field_parse(node.column_ref.fields.last) if node.respond_to?(:column_ref) && node.column_ref
-        return if node.a_const.val.null
+        # This fails if the return value of a THEN is 'error'::text (because of typecast....)
+        return if node.a_const.isnull
 
-        val = if node.a_const.val.integer
-                node.a_const.val.integer.ival
-              elsif node.a_const.val.string
-                node.a_const.val.string.str
+        val = if node.a_const.ival
+                node.a_const.ival.ival
+              elsif node.a_const.sval
+                node.a_const.sval.sval
               else
                 "NOTKNOWN: #{node.a_const}"
               end
 
         @res << val
+      rescue NoMethodError => e
+        puts 'ERROR DURING apply_case_value FOR NODE:'
+        p node
+        puts e.backtrace.join("\n")
+        raise
+        # <PgQuery::Node: type_cast: <PgQuery::TypeCast: arg: <PgQuery::Node: a_const: <PgQuery::A_Const: val: <PgQuery::Node: string: <PgQuery::String: str: "error">>, location: 2875>>, type_name: <PgQuery::TypeName: names: [<PgQuery::Node: string: <PgQuery::String: str: "text">>], type_oid: 0, setof: false, pct_type: false, typmods: [], typemod: -1, array_bounds: [], location: 2884>, location: 2882>>
+        # <PgQuery::Node: type_cast: <PgQuery::TypeCast: arg: <PgQuery::Node: a_const: <PgQuery::A_Const: val: <PgQuery::Node: string: <PgQuery::String: str: "warning">>, location: 2566>>, type_name: <PgQuery::TypeName: names: [<PgQuery::Node: string: <PgQuery::String: str: "text">>], type_oid: 0, setof: false, pct_type: false, typmods: [], typemod: -1, array_bounds: [], location: 2577>, location: 2575>>
       end
 
       # Column name - returns field name or its alias if provided.
@@ -144,7 +152,7 @@ module Crossbeams
         if restarget.val.column_ref
           field_parse(restarget.val.column_ref.fields.last)
         else
-          restarget.val.func_call.funcname.last.string.str
+          restarget.val.func_call.funcname.last.string.sval
         end
       end
 
@@ -157,7 +165,7 @@ module Crossbeams
       def get_funcname(restarget)
         return nil unless restarget.val.func_call
 
-        restarget.val.func_call.funcname.last.string.str
+        restarget.val.func_call.funcname.last.string.sval
       end
 
       def build_fingerprint
@@ -168,7 +176,7 @@ module Crossbeams
 
       # Take a node and combine string and int parts of its tree to generate a "fingerprint".
       def calc_fingerprint(node) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
-        @fingerprint << node.string.str if node.respond_to?(:string) && node.string
+        @fingerprint << node.string.sval if node.respond_to?(:string) && node.string
         @fingerprint << node.integer.ival if node.respond_to?(:integer) && node.integer
         @fingerprint << '*' if node.respond_to?(:a_star) && node.a_star
         @fingerprint << node.nulltesttype if node.respond_to?(:nulltesttype) && node.nulltesttype
@@ -225,7 +233,7 @@ module Crossbeams
         node_type = field.node
         case node_type
         when :string
-          field.string.str
+          field.string.sval
         when :integer
           field.integer.ivar
         when :a_star
