@@ -9,6 +9,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Added
 - Query parameter operator can be "ANY" to find rows where an array column contains the given value
 ### Changed
+- Upgrade PgQuery gem
 ### Fixed
 - Prevent exception when parsing a CASE that returns the value of a column instead of a const
 

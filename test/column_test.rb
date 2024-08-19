@@ -3,8 +3,8 @@ require 'test_helper'
 class ColumnTest < Minitest::Test
 
   BASIC_COLUMN = PgQuery::ResTarget.new(val:
-                                        PgQuery::Node.from(PgQuery::ColumnRef.new(fields: [PgQuery::Node.from(PgQuery::String.new(str: 'b')),
-                                                                                           PgQuery::Node.from(PgQuery::String.new(str: 'name'))])))
+                                        PgQuery::Node.from(PgQuery::ColumnRef.new(fields: [PgQuery::Node.from(PgQuery::String.new(sval: 'b')),
+                                                                                           PgQuery::Node.from(PgQuery::String.new(sval: 'name'))])))
 
   def test_column_caption
     column = Crossbeams::Dataminer::Column.new(1, BASIC_COLUMN)
@@ -12,7 +12,7 @@ class ColumnTest < Minitest::Test
   end
 
   def test_column_namespace_name_no_alias
-    pg_col = PgQuery::ResTarget.new(val: PgQuery::Node.from(PgQuery::ColumnRef.new(fields: [PgQuery::Node.from(PgQuery::String.new(str: 'name'))])))
+    pg_col = PgQuery::ResTarget.new(val: PgQuery::Node.from(PgQuery::ColumnRef.new(fields: [PgQuery::Node.from(PgQuery::String.new(sval: 'name'))])))
     column = Crossbeams::Dataminer::Column.new(1, pg_col)
     assert_equal 'name', column.namespaced_name
   end

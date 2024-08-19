@@ -268,7 +268,7 @@ module Crossbeams
       #
       # @return [String] runnable SQL COUNT query
       def count_query # rubocop:disable Metrics/AbcSize
-        parsed_count = [PgQuery::Node.from(PgQuery::ResTarget.new(val: PgQuery::Node.from(PgQuery::FuncCall.new(funcname: [PgQuery::Node.from(PgQuery::String.new(str: 'count'))], agg_star: true))))]
+        parsed_count = [PgQuery::Node.from(PgQuery::ResTarget.new(val: PgQuery::Node.from(PgQuery::FuncCall.new(funcname: [PgQuery::Node.from(PgQuery::String.new(sval: 'count'))], agg_star: true))))]
         parse = PgQuery.parse(runnable_sql)
         tree = tree_select_stmt(parse.tree)
         tree.limit_option = :LIMIT_OPTION_DEFAULT
@@ -438,7 +438,7 @@ module Crossbeams
 
       def remove_sorted_column(column)
         original_select.sort_clause.reject! do |order|
-          order.sort_by.node.column_ref.fields.map { |f| f.string.str }.join('.') == column.namespaced_name
+          order.sort_by.node.column_ref.fields.map { |f| f.string.sval }.join('.') == column.namespaced_name
         end
       end
 
@@ -476,13 +476,13 @@ module Crossbeams
       end
 
       def make_int_value_node(int, type)
-        PgQuery::Node.from(PgQuery::A_Const.new(val: PgQuery::Node.from(PgQuery::Integer.new(ival: int))))
+        PgQuery::Node.from(PgQuery::A_Const.new(ival: PgQuery::Integer.new(ival: int)))
       rescue RangeError
         raise ArgumentError, "#{int} is not a valid number for #{type}"
       end
 
       def get_int_value(node)
-        node.a_const.val.integer.ival
+        node.a_const.ival.ival
       end
 
       def apply_params_without_where_clause(string_params)
