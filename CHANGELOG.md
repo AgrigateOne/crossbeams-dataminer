@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [3.0.1] - 2025-07-23
+### Fixed
+- Parameters with `data_type` set to `:datetime` are parsed as a Time object so that Sequel handles timezones correctly
+
 ## [3.0.0] - 2024-08-19
 ### Added
 - Query parameter operator can be "ANY" to find rows where an array column contains the given value
