@@ -121,6 +121,9 @@ module Crossbeams
           value.to_i
         when :number
           value.to_f
+        when :datetime
+          # Parse a string to time to ensure the DB recognises timezone correctly
+          value.nil? ? 'NULL' : "'#{Time.parse(value)}'"
         else
           "'#{value.to_s.gsub("'", "''")}'"
         end
