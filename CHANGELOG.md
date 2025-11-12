@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [3.0.2] - 2025-11-12
+### Changed
+- Upgrade to Ruby 3.4
+
 ## [3.0.1] - 2025-07-23
 ### Fixed
 - Parameters with `data_type` set to `:datetime` are parsed as a Time object so that Sequel handles timezones correctly
