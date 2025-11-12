@@ -486,7 +486,7 @@ module Crossbeams
       end
 
       def apply_params_without_where_clause(string_params)
-        sql = 'SELECT 1 WHERE ' << string_params.join(' AND ')
+        sql = "SELECT 1 WHERE #{string_params.join(' AND ')}"
         pg_where = PgQuery.parse(sql)
         modified_select.where_clause = tree_select_stmt(pg_where.tree).where_clause
       end
