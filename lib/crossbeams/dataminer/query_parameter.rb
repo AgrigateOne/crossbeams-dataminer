@@ -96,7 +96,7 @@ module Crossbeams
 
       def range_or_standard_to_string(operator, values)
         if @is_an_or_range
-          '(' << values.map { |v| "#{@qualified_column_name} #{operator} #{v}" }.join(' OR ') << ')'
+          "(#{values.map { |v| "#{@qualified_column_name} #{operator} #{v}" }.join(' OR ')})"
         else
           "#{@qualified_column_name} #{operator} #{values.first}"
         end
@@ -104,7 +104,7 @@ module Crossbeams
 
       def range_or_standard_to_text(operator, values)
         if @is_an_or_range
-          '(' << values.map { |v| "#{unqualified_column_name} #{operator} #{v.to_s.tr('%', '')}" }.join(' OR ') << ')'
+          "(#{values.map { |v| "#{unqualified_column_name} #{operator} #{v.to_s.tr('%', '')}" }.join(' OR ')})"
         else
           "#{unqualified_column_name} #{operator} #{values.first.to_s.tr('%', '')}"
         end
