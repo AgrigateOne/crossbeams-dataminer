@@ -6,3 +6,4 @@ $LOAD_PATH.unshift File.expand_path('../../lib', __FILE__)
 require 'crossbeams/dataminer'
 
 require 'minitest/autorun'
+require 'minitest/rg'
