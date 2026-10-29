@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [3.1.0] - 2026-10-29
+### Changed
+- Upgrade to Ruby 4.0.8
+
 ## [3.0.2] - 2025-11-12
 ### Changed
 - Upgrade to Ruby 3.4
