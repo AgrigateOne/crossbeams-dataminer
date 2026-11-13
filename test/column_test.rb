@@ -105,6 +105,11 @@ class ColumnTest < Minitest::Test
       [%w[one two], "SELECT CASE WHEN active THEN 'one' WHEN no = 1 THEN 'two' WHEN no = 3 THEN 'one' END AS col"],
       [%w[one two], "SELECT CASE WHEN act THEN CASE WHEN a = 1 THEN 'one' WHEN b = 1 THEN 'two' END WHEN d = 3 THEN 'one' END AS col"],
       [%w[one two three], "SELECT CASE WHEN act THEN CASE WHEN a = 1 THEN 'one' WHEN b = 1 THEN 'two' END WHEN d = 3 THEN 'three' END AS col"],
+      [%w[ready warning error], "SELECT CASE WHEN NOT active THEN 'ready' WHEN support THEN 'warning' WHEN site_id IS NULL::text THEN 'error'::text ELSE NULL END AS col"],
+      [["ok", 1, "bad"], "SELECT CASE WHEN a THEN 'ok'::text WHEN b THEN 1 ELSE 'bad'::varchar(20) END AS col"],
+      [%w[inner inner2 outer], "SELECT CASE WHEN a THEN (CASE WHEN c THEN 'inner' ELSE 'inner2' END)::text ELSE 'outer' END AS col"],
+      [%w[x], "SELECT CASE WHEN a THEN login_name WHEN b THEN upper(user_name) ELSE 'x' END AS col"],
+      [%w[a b], "SELECT CASE WHEN x THEN 'a'::text::varchar ELSE 'b' END AS col"],
       [[], "SELECT col"]
     ]
     tests.each do |expect, qry|

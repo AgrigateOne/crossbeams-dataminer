@@ -106,26 +106,33 @@ module Crossbeams
 
       def get_col_results(case_expr) # rubocop:disable Metrics/AbcSize
         case_expr.args.each do |node|
-          if node.case_when.result.case_expr
-            get_col_results(node.case_when.result.case_expr)
+          result = unwrap_cast(node.case_when.result)
+          if result.case_expr
+            get_col_results(result.case_expr)
           else
-            apply_case_value(node.case_when.result)
+            apply_case_value(result)
           end
         end
 
         return unless case_expr.defresult
 
-        if case_expr.defresult.case_expr
-          get_col_results(case_expr.defresult.case_expr)
+        defresult = unwrap_cast(case_expr.defresult)
+        if defresult.case_expr
+          get_col_results(defresult.case_expr)
         else
-          apply_case_value(case_expr.defresult)
+          apply_case_value(defresult)
         end
       end
 
+      def unwrap_cast(node)
+        node = node.type_cast.arg while node.type_cast
+        node
+      end
+
       def apply_case_value(node) # rubocop:disable Metrics/AbcSize
-        return field_parse(node.column_ref.fields.last) if node.respond_to?(:column_ref) && node.column_ref
-        # This fails if the return value of a THEN is 'error'::text (because of typecast....)
-        return if node.a_const.isnull
+        return field_parse(node.column_ref.fields.last) if node.column_ref
+
+        return if node.a_const.nil? || node.a_const.isnull
 
         val = if node.a_const.ival
                 node.a_const.ival.ival
@@ -136,11 +143,6 @@ module Crossbeams
               end
 
         @res << val
-      rescue NoMethodError => e
-        puts 'ERROR DURING apply_case_value FOR NODE:'
-        p node
-        puts e.backtrace.join("\n")
-        raise
         # <PgQuery::Node: type_cast: <PgQuery::TypeCast: arg: <PgQuery::Node: a_const: <PgQuery::A_Const: val: <PgQuery::Node: string: <PgQuery::String: str: "error">>, location: 2875>>, type_name: <PgQuery::TypeName: names: [<PgQuery::Node: string: <PgQuery::String: str: "text">>], type_oid: 0, setof: false, pct_type: false, typmods: [], typemod: -1, array_bounds: [], location: 2884>, location: 2882>>
         # <PgQuery::Node: type_cast: <PgQuery::TypeCast: arg: <PgQuery::Node: a_const: <PgQuery::A_Const: val: <PgQuery::Node: string: <PgQuery::String: str: "warning">>, location: 2566>>, type_name: <PgQuery::TypeName: names: [<PgQuery::Node: string: <PgQuery::String: str: "text">>], type_oid: 0, setof: false, pct_type: false, typmods: [], typemod: -1, array_bounds: [], location: 2577>, location: 2575>>
       end
